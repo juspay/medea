@@ -15,7 +15,8 @@ build-type:             Simple
 tested-with:            GHC == 8.6.5
 extra-source-files:     CHANGELOG.md,
                         README.md,
-                        LICENSE.md
+                        LICENSE.md,
+                        SPEC.md
 
 source-repository       head
   type:                 git
@@ -23,9 +24,10 @@ source-repository       head
 
 library
   exposed-modules:      Data.Medea
-  -- other-modules:        Data.Medea.Helpers,
+  other-modules:        Data.Medea.Primitive
   build-depends:        base >= 4.11.1 && < 5,
-                        aeson >= 1.4.6.0 && < 1.5.0.0
+                        aeson >= 1.4.6.0 && < 1.5.0.0,
+                        text-short >= 0.1.3 && < 0.2.0
   hs-source-dirs:       src
   default-language:     Haskell2010
 

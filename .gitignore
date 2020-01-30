@@ -1,0 +1,10 @@
+.vimrc
+/dist
+.cabal-sandbox
+.cabal-sandbox-config
+cabal.sandbox.config
+.DS_Store
+.stack-work
+cabal.project.local
+/dist-newstyle
+stack.yaml.lock

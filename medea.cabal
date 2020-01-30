@@ -1,0 +1,39 @@
+cabal-version:          2.2
+name:                   medea
+version:                1.0.0
+synopsis:               An eDSL for schema construction and validation for JSON.
+description:            Insert one here later.
+homepage:               https://bitbucket.org/juspay/medea/src
+bug-reports:            mailto:koz.ross@juspay.in
+license:                MIT
+license-file:           LICENSE.md
+author:                 Koz Ross
+maintainer:             koz.ross@juspay.in
+copyright:              Juspay Technologies Pvt Ltd (C) 2020
+category:               Data
+build-type:             Simple
+tested-with:            GHC == 8.6.5
+extra-source-files:     CHANGELOG.md,
+                        README.md,
+                        LICENSE.md
+
+source-repository       head
+  type:                 git
+  location:             https://bitbucket.org/juspay/medea.git
+
+library
+  exposed-modules:      Data.Medea
+  -- other-modules:        Data.Medea.Helpers,
+  build-depends:        base >= 4.11.1 && < 5,
+                        aeson >= 1.4.6.0 && < 1.5.0.0
+  hs-source-dirs:       src
+  default-language:     Haskell2010
+
+test-suite conformance
+  type:                 exitcode-stdio-1.0
+  main-is:              Main.hs
+  build-depends:        base,
+                        medea,
+                        aeson
+  hs-source-dirs:       test
+  default-language:     Haskell2010 

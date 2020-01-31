@@ -71,11 +71,6 @@ A Medea _schema graph file_ MUST be encoded as UTF-8. A Medea validator MUST
 indicate a unique error condition if asked to parse a schema graph file which is
 not encoded as valid UTF-8.
 
-A Medea schema graph file MUST have a maximum width of 80 symbols before any
-newline. A Medea validator MUST indicate a unique error condition if it
-encounters a sequence of symbols of length greater than 80 containing no newline
-symbols within it.
-
 A Medea schema graph file SHOULD have the extension ``.medea``.
 
 ### Schema graph file sections
@@ -105,9 +100,8 @@ A _schema_ (plural schemata) MUST consist of the following, in this order:
 1) The reserved identifier "$schema";
 2) A single space symbol;
 3) A Medea identifier, which MUST exist in a schema name line in the same file;
-4) A newline symbol;
-5) A _type specification_; and
-6) Zero or more _additional specifications_ (defined fully in the next section).
+4) A newline symbol; and
+5) Zero or more _specifications_ (defined fully in the subsequent section).
 
 A Medea validator MUST indicate a unique error condition if a schema is defined
 using an identifier that does not correspond to a schema name line in the same
@@ -117,9 +111,18 @@ the order, or formation rules, described above (or subsequent in the case of
 type specifications or additional specifications) are violated: each possible
 violation is distinct from any other. 
 
-### Type specification
+### Specifications
 
-A type specification MUST consist of the following, in this order:
+Any schema can include any of the following specifications at most once. Some
+specifications are conditional on others (noted in their descriptions). A Medea
+validator MUST indicate a unique error condition if a specification which has
+conditions is placed in a schema before any specifications that would satisfy
+these conditions.
+
+#### Type specification
+
+A _type specification_ may included as part of any schema. A type specification 
+MUST consist of the following, in this order:
 
 1) Four space symbols;
 2) The reserved identifier "$type";
@@ -137,6 +140,24 @@ Each _type specifier line_ MUST consist of the following, in this order:
 A Medea validator MUST indicate a unique error condition if any of these
 requirements are not met. A JSON value is valid against a type specification if
 it is valid against _any_ type specifier line.
+
+A type specification MUST NOT be _self-recursive_: its identifier section cannot
+refer to the schema identifier it is a part of. Specifically, the following is
+not valid Medea schema graph file content:
+
+```
+$schemata
+    foo
+$schema foo
+    $type
+        foo
+```
+
+A Medea validator MUST indicate a unique error condition upon discovering such a
+situation.
+
+If a type specification is not present, the schema treats any JSON value as
+valid irrespective of its type.
 
 [d76]: http://www.unicode.org/versions/Unicode5.2.0/ch03.pdf#page=35
 [rfc2119]: https://tools.ietf.org/html/rfc2119

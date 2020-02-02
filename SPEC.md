@@ -52,18 +52,14 @@ JSON. These are defined as follows:
 * ``string``: A non-null JSON string.
 
 A Medea validator MUST provide validation of JSON values of these types, and
-MUST provide primitive identifiers under the following primitive identifiers:
+MUST provide the following _primitive type identifiers_:
 
-* ``null``: "$null"
-* ``boolean``: "$boolean"
-* ``object``: "$object"
-* ``array``: "$array"
-* ``number``: "$number"
-* ``string``: "$string"
-
-A Medea validator MUST indicate a unique error condition _for each primitive
-type_ when validation of a value fails against a schema corresponding to such a
-type.
+* ``$null``
+* ``$boolean
+* ``$object``
+* ``$array``
+* ``$number``
+* ``$string``
 
 ## Schema graph file format
 
@@ -73,91 +69,85 @@ not encoded as valid UTF-8.
 
 A Medea schema graph file SHOULD have the extension ``.medea``.
 
-### Schema graph file sections
-
-A Medea schema graph file MUST have two _sections_, in this order: a _schemata
-section_ and a _schema list section_. A Medea validator MUST indicate a unique
-error condition if given a schema graph file missing either of these sections,
-or not having them in the order given.
-
-A schemata section MUST consist of the following, in this order: the reserved
-identifier "$schemata", a newline, and zero or more _schema name lines_. Each
-schema name line consists of four space symbols, a Medea identifier, and a
-newline. A Medea validator MUST indicate a unique error condition if any of
-these criteria are violated.
-
-Let _n_ refer to the number of schema name lines in a schemata section in a
-Medea schema graph file. A schema list section in the same file MUST consist of
-_n_ _schemata_, plus a _$start schema_ (both defined fully in the next section).
-Each entry in a schema list section must be separated by one newline from the
-next. A Medea validator MUST indicate a unique error condition if provided with
-too many, or too few, schemata. Schemata can be provided in any order.
-
-### Schemata
-
-A _schema_ (plural schemata) MUST consist of the following, in this order:
+A Medea file is made up of one or more _schemata_. A _schema_ (singular of 
+'schemata') MUST consist of the following, in this order:
 
 1) The reserved identifier "$schema";
 2) A single space symbol;
-3) A Medea identifier, which MUST exist in a schema name line in the same file;
+3) A Medea identifier (called the _name_ or _naming identifier_);
 4) A newline symbol; and
 5) Zero or more _specifications_ (defined fully in the subsequent section).
 
 A Medea validator MUST indicate a unique error condition if a schema is defined
-using an identifier that does not correspond to a schema name line in the same
-file, or using an identifier that has already been used to define an existing
+using an identifier that has already been used to define an existing
 schema. Additionally, a Medea validator MUST raise a unique error condition if
 the order, or formation rules, described above (or subsequent in the case of
 type specifications or additional specifications) are violated: each possible
 violation is distinct from any other. 
 
+Additionally, a Medea graph file MUST contain a schema named ``$start``. A Medea
+validator MUST indicate a unique error condition if no such schema is defined.
+
 ### Specifications
 
 Any schema can include any of the following specifications at most once. Some
 specifications are conditional on others (noted in their descriptions). A Medea
-validator MUST indicate a unique error condition if a specification which has
-conditions is placed in a schema before any specifications that would satisfy
-these conditions.
+validator MUST indicate a unique error condition if a specification is provided
+for a schema where its conditions are not met.
 
+Each of the subsequent entries has the following format:
+
+* **Description:** An overview of the purpose and intended semantics of this
+  specification.
+* **Preconditions:**
+* **Syntax:** Describes the rules of form for this specification type. A Medea
+  validator MUST indicate a unique error condition if any of these are violated.
+* **Semantics:** Describes how this specification affects the validation
+  behaviour of its schema.
+* **Default:** Describes the validation behaviour of a schema missing this
+  specification.
+ 
 #### Type specification
 
-A _type specification_ may included as part of any schema. A type specification 
-MUST consist of the following, in this order:
+**Description:** A _type specification_ describes basic rules of form for JSON
+values.
+
+**Preconditions:** None
+
+**Syntax:** A type specification MUST consist of the following, in this order:
 
 1) Four space symbols;
-2) The reserved identifier "$type";
-3) A newline symbol;
+2) The reserved identifier ``$type``;
+3) A newline; and
 4) One or more _type specifier lines_.
 
-Each _type specifier line_ MUST consist of the following, in this order:
+Each type specifier line MUST consist of the following, in this order: 
 
 1) Eight space symbols;
-2) Either a Medea identifier (which MUST exist in a schema name line in the same
-   file) or one "$null", "$boolean", "$object", "$array", "$number", "$string";
-   and
-3) A newline symbol.
+2) _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
+  ``$array``, ``$number``, ``$string``; and
+3) A newline.
 
-A Medea validator MUST indicate a unique error condition if any of these
-requirements are not met. A JSON value is valid against a type specification if
-it is valid against _any_ type specifier line.
+[TODO: Add note about the type relation graph being acyclic?]
 
-A type specification MUST NOT be _self-recursive_: its identifier section cannot
-refer to the schema identifier it is a part of. Specifically, the following is
-not valid Medea schema graph file content:
+**Semantics:** A JSON value is considered valid by this specifier if it is valid
+by _any_ of the identifiers provided for all of its type specifiers. For each
+individual identifier, the following validation rules apply:
 
-```
-$schemata
-    foo
-$schema foo
-    $type
-        foo
-```
+* ``$null``: The JSON value is ``null`.
+* ``$boolean``: The JSON value is a JSON boolean.
+* ``$object``: The JSON value is a JSON object.
+* ``$array``: The JSON value is a JSON array.
+* ``$number``: The JSON value is a JSON number.
+* ``string``: The JSON value is a JSON string.
+* Any other identifier: The JSON value is valid according to the schema named by
+  this identifier.
 
-A Medea validator MUST indicate a unique error condition upon discovering such a
-situation.
+A Medea VALIDATOR must indicate a unique error condition if an identifier in a
+type specifier line does not correspond to any schema defined in the current
+schema file.
 
-If a type specification is not present, the schema treats any JSON value as
-valid irrespective of its type.
+**Default:** Any JSON value is considered valid by this specifier.
 
 [d76]: http://www.unicode.org/versions/Unicode5.2.0/ch03.pdf#page=35
 [rfc2119]: https://tools.ietf.org/html/rfc2119

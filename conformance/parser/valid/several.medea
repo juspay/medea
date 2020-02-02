@@ -1,0 +1,8 @@
+$schema foo
+    $type
+        $number
+
+$schema $start
+    $type
+        foo
+        $string

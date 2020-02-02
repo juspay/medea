@@ -8,7 +8,9 @@ import Data.ByteString (ByteString, pack)
 import Data.Word (Word8)
 import Streamly (IsStream, MonadAsync)
 import Streamly.Prelude (Enumerable(..), splitOnSuffix)
-import Control.Monad.Except (MonadError(..))
+import Streamly.Internal.FileSystem.File (toBytes)
+import Control.Monad.Except (MonadError(..), runExceptT)
+import Data.Vector (Vector, unfoldrM)
 
 import qualified Data.ByteString as BS
 import qualified Streamly.Prelude as SP
@@ -102,3 +104,6 @@ tagLineNum = SP.zipWith (,) (enumerateFrom minBound) . splitOnSuffix (== 10) (pa
 
 intoLines :: (IsStream t, MonadAsync m, MonadError ParseError m) => t m (LineNumber, ByteString) -> t m Line
 intoLines = SP.mapM (uncurry makeLine)
+
+parse :: FilePath -> IO (Either ParseError (Vector Line))
+parse = runExceptT . unfoldrM SP.uncons . intoLines . tagLineNum . toBytes

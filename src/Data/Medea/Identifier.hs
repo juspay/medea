@@ -12,6 +12,7 @@ import Data.Text.Short (ShortText, toShortByteString, isPrefixOf)
 
 import qualified Data.Vector as V
 
+import Data.Medea.Primitive (Primitive(..))
 import Data.Medea.Types.Lines (LineNumber)
 import Data.Medea.Error (LoaderError, SemanticError(..), throwSemanticError)
 
@@ -43,3 +44,13 @@ isPrimitive (Identifier st) = V.elem st primitives
 
 start :: Identifier
 start = Identifier "$start"
+
+-- checked _externally_!
+primFromIdentifier :: Identifier -> Primitive
+primFromIdentifier (Identifier st) = case st of
+  "$null" -> NullT
+  "$number" -> NumberT
+  "$boolean" -> BooleanT
+  "$string" -> StringT
+  "$object" -> ObjectT
+  _ -> ArrayT

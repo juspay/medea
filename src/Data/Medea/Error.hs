@@ -40,7 +40,19 @@ data SemanticError =
   -- The same identifier was used to name two different schemata
   SameSchemaName LineNumber | -- where
   -- Schema labelled with $start isn't in the graph
-  StartingSchemaMissing
+  StartingSchemaMissing |
+  -- Ended too soon
+  UnexpectedEndOfFile |
+  -- Should have seen a newline
+  ExpectedNewLine LineNumber | -- where
+  -- Should have seen a schema header
+  ExpectedSchemaHeader LineNumber | -- where
+  -- Should have seen a type specification header
+  ExpectedTypeSpecHeader LineNumber | -- where
+  -- Should have seen a type specification (or terminating newline)
+  ExpectedTypeSpec LineNumber | -- where
+  -- Reserved identifier being used where a type should go, but not primitive
+  ReservedNonPrimitiveType LineNumber -- where
   deriving (Show)
 
 throwSemanticError :: (MonadError LoaderError m) => 

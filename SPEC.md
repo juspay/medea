@@ -91,7 +91,14 @@ violation is distinct from any other.
 Additionally, a Medea graph file MUST contain a schema named ``$start``. A Medea
 validator MUST indicate a unique error condition if no such schema is defined.
 
-Schemata MAY be separated by a single extra newline.
+Schemata MUST be separated by a single extra newline. Thus, a schema graph file
+containing schemata ``foo`` and ``$start`` is formed like this:
+
+```
+$schema foo
+
+$schema $start
+```
 
 ### Specifications
 

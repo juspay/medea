@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -6,10 +7,10 @@ module Data.Medea.Parsing where
 import Data.Text.Short (ShortText, fromByteString)
 import Data.ByteString (ByteString, pack)
 import Data.Word (Word8)
-import Streamly (IsStream, MonadAsync)
+import Streamly (IsStream, MonadAsync, SerialT)
 import Streamly.Prelude (Enumerable(..), splitOnSuffix)
 import Streamly.Internal.FileSystem.File (toBytes)
-import Control.Monad.Except (MonadError(..), runExceptT)
+import Control.Monad.Except (MonadError(..), ExceptT, runExceptT)
 import Data.Vector (Vector, unfoldrM)
 
 import qualified Data.ByteString as BS
@@ -27,12 +28,15 @@ data ParseError =
   -- Should have a $schema tag on a schema header, but didn't
   MissingSchemaTag LineNumber | -- where
   -- Should have a $type tag on a type specifier, but didn't
-  MissingTypeTag LineNumber -- where
+  MissingTypeTag LineNumber | -- where
+  -- No schemata provided at all
+  NoSchemata
+  deriving (Show)
 
 -- Parser innards
 
 newtype LineNumber = LineNumber { expose :: Word }
-  deriving (Eq, Ord, Bounded)
+  deriving (Eq, Ord, Bounded, Show)
 
 -- gah
 instance Enum LineNumber where
@@ -106,4 +110,11 @@ intoLines :: (IsStream t, MonadAsync m, MonadError ParseError m) => t m (LineNum
 intoLines = SP.mapM (uncurry makeLine)
 
 parse :: FilePath -> IO (Either ParseError (Vector Line))
-parse = runExceptT . unfoldrM SP.uncons . intoLines . tagLineNum . toBytes
+parse fp = do
+  let strm = intoLines @SerialT @(ExceptT ParseError IO) . tagLineNum . toBytes $ fp
+  result <- runExceptT . SP.null $ strm
+  case result of
+    (Left e) -> pure . Left $ e
+    Right isEmpty -> if isEmpty
+                     then pure (Left NoSchemata)
+                     else runExceptT . unfoldrM SP.uncons $ strm

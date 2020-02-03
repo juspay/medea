@@ -17,8 +17,8 @@ extra-source-files:     CHANGELOG.md,
                         README.md,
                         LICENSE.md,
                         SPEC.md,
-                        conformance/parser/valid/*.medea,
-                        conformance/parser/valid/*.medea
+                        conformance/loader/valid/*.medea,
+                        conformance/loader/invalid/*.medea
 
 source-repository       head
   type:                 git
@@ -44,10 +44,13 @@ library
   hs-source-dirs:       src
   default-language:     Haskell2010
 
-test-suite parser-conformance
+test-suite loader-conformance
   type:                 exitcode-stdio-1.0
   main-is:              Main.hs
   build-depends:        base,
-                        medea
-  hs-source-dirs:       test
+                        medea,
+                        hspec >= 2.7.1 && < 2.8.0,
+                        directory >= 1.3.3.0 && < 1.4.0.0,
+                        filepath >= 1.4.2.1 && < 1.5.0.0
+  hs-source-dirs:       test/loader
   default-language:     Haskell2010 

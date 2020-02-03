@@ -25,13 +25,15 @@ source-repository       head
   location:             https://bitbucket.org/juspay/medea.git
 
 library
-  exposed-modules:      Data.Medea
+  exposed-modules:      Data.Medea,
+                        Data.Medea.Error
   other-modules:        Data.Medea.Primitive,
                         Data.Medea.Validation,
                         Data.Medea.Identifier,
                         Data.Medea.Parsing,
                         Data.Medea.Schema,
-                        Data.Medea.SchemaGraph
+                        Data.Medea.SchemaGraph,
+                        Data.Medea.Types.Lines
   build-depends:        base >= 4.11.1 && < 5,
                         aeson >= 1.4.6.0 && < 1.5.0.0,
                         text-short >= 0.1.3 && < 0.2.0,

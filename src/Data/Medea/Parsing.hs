@@ -17,63 +17,25 @@ import qualified Data.ByteString as BS
 import qualified Streamly.Prelude as SP
 import qualified Streamly.Data.Fold as SDF
 
-data ParseError = 
-  -- Invalid amount of spaces
-  InvalidSpaces Int -- How many spaces
-                LineNumber | -- Where
-  -- Schema header wasn't well-formed
-  InvalidSchemaHeader LineNumber | -- where
-  -- We got something which isn't UTF-8
-  NotUTF8 LineNumber | -- where
-  -- Should have a $schema tag on a schema header, but didn't
-  MissingSchemaTag LineNumber | -- where
-  -- Should have a $type tag on a type specifier, but didn't
-  MissingTypeTag LineNumber | -- where
-  -- No schemata provided at all
-  NoSchemata
-  deriving (Show)
+import Data.Medea.Types.Lines (LineNumber(..), LineToken(..), Line(..))
+import Data.Medea.Error (LoaderError(..), ParseError(..), throwParseError)
 
 -- Parser innards
 
-newtype LineNumber = LineNumber { expose :: Word }
-  deriving (Eq, Ord, Bounded, Show)
-
--- gah
-instance Enum LineNumber where
-  toEnum = LineNumber . toEnum
-  fromEnum = fromEnum . expose
-
-instance Enumerable LineNumber where
-  enumerateFrom = fmap LineNumber . enumerateFrom . expose
-  enumerateFromTo (LineNumber n) = fmap LineNumber . enumerateFromTo n . expose
-  enumerateFromThen (LineNumber n) = fmap LineNumber . enumerateFromThen n . expose
-  enumerateFromThenTo (LineNumber from) (LineNumber n) = fmap LineNumber . enumerateFromThenTo from n . expose
-
-data LineToken =
-  -- A '$schema' line starting a schema def
-  SchemaHeader ShortText |
-  -- $type - start of a type spec section
-  TypeSpecHeader |
-  -- A single type specifier
-  TypeSpecifier ShortText
-
-data Line = Line { 
-  line :: LineNumber,
-  tok :: LineToken
-}
-
-makeLine :: (MonadError ParseError m) => 
-  LineNumber -> ByteString -> m Line
+makeLine :: (MonadError LoaderError m) => 
+  LineNumber -> ByteString -> m (Line ShortText)
 makeLine lineNum bs = do
   let (lead, rest) = BS.span (32 ==) bs
   case BS.length lead of
-    0 -> makeSchemaHeader lineNum rest
+    0 -> if BS.null rest
+         then pure . Line lineNum $ NewLine
+         else makeSchemaHeader lineNum rest
     4 -> makeTypeSpecHeader lineNum rest
     8 -> makeTypeSpecifier lineNum rest
-    n -> throwError . InvalidSpaces n $ lineNum 
+    n -> throwParseError . InvalidSpaces n $ lineNum 
 
-makeSchemaHeader :: (MonadError ParseError m) => 
-  LineNumber -> ByteString -> m Line
+makeSchemaHeader :: (MonadError LoaderError m) => 
+  LineNumber -> ByteString -> m (Line ShortText)
 makeSchemaHeader lineNum bs = do
   let pieces = BS.splitWith (32 ==) bs
   case pieces of
@@ -83,38 +45,38 @@ makeSchemaHeader lineNum bs = do
       case (encTag, encIdentifier) of
         (Just t, Just i) -> if t == "$schema"
                             then pure . Line lineNum . SchemaHeader $ i
-                            else throwError . MissingSchemaTag $ lineNum
-        _ -> throwError . NotUTF8 $ lineNum 
-    _ -> throwError . InvalidSchemaHeader $ lineNum
+                            else throwParseError . MissingSchemaTag $ lineNum
+        _ -> throwParseError . NotUTF8 $ lineNum 
+    _ -> throwParseError . InvalidSchemaHeader $ lineNum
 
-makeTypeSpecHeader :: (MonadError ParseError m) => 
-  LineNumber -> ByteString -> m Line
+makeTypeSpecHeader :: (MonadError LoaderError m) => 
+  LineNumber -> ByteString -> m (Line ShortText)
 makeTypeSpecHeader lineNum bs = case fromByteString bs of
     Just t -> if t == "$type"
               then pure . Line lineNum $ TypeSpecHeader
-              else throwError . MissingTypeTag $ lineNum
-    Nothing -> throwError . NotUTF8 $ lineNum
+              else throwParseError . MissingTypeTag $ lineNum
+    Nothing -> throwParseError . NotUTF8 $ lineNum
 
-makeTypeSpecifier :: (MonadError ParseError m) => 
-  LineNumber -> ByteString -> m Line
+makeTypeSpecifier :: (MonadError LoaderError m) => 
+  LineNumber -> ByteString -> m (Line ShortText)
 makeTypeSpecifier lineNum bs = case fromByteString bs of
     Just i -> pure . Line lineNum . TypeSpecifier $ i
-    Nothing -> throwError . NotUTF8 $ lineNum
+    Nothing -> throwParseError . NotUTF8 $ lineNum
 
 -- TODO: Currently, this only handles LF, not CRLF or w/e.
 tagLineNum :: (Monad m, IsStream t) => 
   t m Word8 -> t m (LineNumber, ByteString)
 tagLineNum = SP.zipWith (,) (enumerateFrom minBound) . splitOnSuffix (== 10) (pack <$> SDF.toList)
 
-intoLines :: (IsStream t, MonadAsync m, MonadError ParseError m) => t m (LineNumber, ByteString) -> t m Line
+intoLines :: (IsStream t, MonadAsync m, MonadError LoaderError m) => t m (LineNumber, ByteString) -> t m (Line ShortText)
 intoLines = SP.mapM (uncurry makeLine)
 
-parse :: FilePath -> IO (Either ParseError (Vector Line))
+parse :: FilePath -> IO (Either LoaderError (Vector (Line ShortText)))
 parse fp = do
-  let strm = intoLines @SerialT @(ExceptT ParseError IO) . tagLineNum . toBytes $ fp
+  let strm = intoLines @SerialT @(ExceptT LoaderError IO) . tagLineNum . toBytes $ fp
   result <- runExceptT . SP.null $ strm
   case result of
     (Left e) -> pure . Left $ e
     Right isEmpty -> if isEmpty
-                     then pure (Left NoSchemata)
+                     then pure (Left . ParseFailed $ NoSchemata)
                      else runExceptT . unfoldrM SP.uncons $ strm

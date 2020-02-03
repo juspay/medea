@@ -20,6 +20,9 @@ A _JSON value_ is taken to be defined: that is, ``undefined`` is not considered
 to be a valid JSON value. A Medea validator MUST NOT indicate that an
 ``undefined`` value is valid against _any_ schema.
 
+A _newline_ is a platform-specific, non-empty sequence of bytes indicating the
+end of a line.
+
 ## Identifiers
 
 A Medea _identifier_ is a non-empty sequence of UTF-8 scalar values (as defined by
@@ -75,7 +78,7 @@ A Medea file is made up of one or more _schemata_. A _schema_ (singular of
 1) The reserved identifier "$schema";
 2) A single space symbol;
 3) A Medea identifier (called the _name_ or _naming identifier_);
-4) A newline symbol; and
+4) A newline; and
 5) Zero or more _specifications_ (defined fully in the subsequent section).
 
 A Medea validator MUST indicate a unique error condition if a schema is defined
@@ -87,6 +90,8 @@ violation is distinct from any other.
 
 Additionally, a Medea graph file MUST contain a schema named ``$start``. A Medea
 validator MUST indicate a unique error condition if no such schema is defined.
+
+Schemata MAY be separated by a single extra newline.
 
 ### Specifications
 

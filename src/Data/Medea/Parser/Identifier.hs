@@ -1,35 +1,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Data.Medea.Identifier 
-(
-  Identifier, ReservedIdentifier, PrimTypeIdentifier,
-  parseIdentifier, 
-  tryReserved, parseReserved, parseTypeHeader, parseSchemaHeader, 
-  startIdentifier, forgetReserved,
-  tryPrimType, parsePrimType, forgetPrimType
-) where
+module Data.Medea.Parser.Identifier where 
 
 import Data.Functor (($>))
 import Data.Char (isSeparator)
 import Control.Monad (when)
 import Text.Megaparsec (MonadParsec(..), 
                         chunk, customFailure, single, (<|>))
-import Data.Hashable (Hashable)
 
 import Data.Text.Utf8 (Utf8String, byteWidth, isPrefixOf, cons)
-import Data.Medea.SchemaError (SchemaError(..))
+import Data.Medea.Parser.Error (ParseError(..))
 
-newtype Identifier = Identifier Utf8String
-  deriving (Eq, Hashable)
+newtype Identifier = Identifier { expose :: Utf8String }
+  deriving (Eq, Ord)
 
-parseIdentifier :: (MonadParsec SchemaError Utf8String m) => 
+parseIdentifier :: (MonadParsec ParseError Utf8String m) => 
   m Identifier
 parseIdentifier = do
   ident <- takeWhile1P Nothing (not . isSeparator)
-  when (byteWidth ident > 32) (customFailure IdentifierTooLong)
+  when (byteWidth ident > 32) (customFailure . IdentifierTooLong $ ident)
   pure . Identifier $ ident
 
 newtype ReservedIdentifier = ReservedIdentifier Utf8String
@@ -38,22 +29,22 @@ newtype ReservedIdentifier = ReservedIdentifier Utf8String
 startIdentifier :: ReservedIdentifier
 startIdentifier = ReservedIdentifier "$start"
 
-parseReserved :: (MonadParsec SchemaError Utf8String m) => 
+parseReserved :: (MonadParsec ParseError Utf8String m) => 
   m ReservedIdentifier
 parseReserved = do
   lead <- single '$'
   rest <- takeWhile1P Nothing (not . isSeparator)
   let ident = cons lead rest
-  when (byteWidth ident > 32) (customFailure IdentifierTooLong)
+  when (byteWidth ident > 32) (customFailure . IdentifierTooLong $ ident)
   pure . ReservedIdentifier $ ident
 
-parseSchemaHeader :: (MonadParsec SchemaError Utf8String m) => 
+parseSchemaHeader :: (MonadParsec ParseError Utf8String m) => 
   m ReservedIdentifier
 parseSchemaHeader = do
   ident <- chunk "$schema"
   pure . ReservedIdentifier $ ident
 
-parseTypeHeader :: (MonadParsec SchemaError Utf8String m) => 
+parseTypeHeader :: (MonadParsec ParseError Utf8String m) => 
   m ReservedIdentifier
 parseTypeHeader = do
   ident <- chunk "$type"
@@ -77,7 +68,7 @@ data PrimTypeIdentifier =
   StringIdentifier
   deriving (Eq)
 
-parsePrimType :: (MonadParsec SchemaError Utf8String m) => 
+parsePrimType :: (MonadParsec ParseError Utf8String m) => 
   m PrimTypeIdentifier
 parsePrimType = chunk "$null" $> NullIdentifier <|> 
                 chunk "$boolean" $> BooleanIdentifier <|>

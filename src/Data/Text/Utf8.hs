@@ -5,15 +5,10 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Data.Text.Utf8 
-(
-  Utf8String,
-  byteWidth, Data.Text.Utf8.isPrefixOf, 
-  Data.Text.Utf8.cons
-) where
+module Data.Text.Utf8 where
 
+import Data.ByteString (ByteString)
 import Data.String (IsString)
-import Data.Hashable (Hashable)
 import Data.Maybe (fromMaybe)
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Bool (bool)
@@ -27,7 +22,7 @@ import Data.List.NonEmpty as NE
 import Data.Text.Short as TS
 
 newtype Utf8String = Utf8String { expose :: ShortText }
-  deriving (Eq, Ord, Show, Hashable, IsString)
+  deriving (Eq, Ord, Show, IsString)
 
 instance Stream Utf8String where
   type Token Utf8String = Char
@@ -70,6 +65,10 @@ isPrefixOf (Utf8String s) (Utf8String t) = s `TS.isPrefixOf` t
 {-# INLINE cons #-}
 cons :: Char -> Utf8String -> Utf8String
 cons c = Utf8String . TS.cons c . expose
+
+{-# INLINE fromByteString #-}
+fromByteString :: ByteString -> Maybe Utf8String
+fromByteString = fmap Utf8String . TS.fromByteString
 
 -- Helpers
 

@@ -1,56 +1,106 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 
-module Data.Medea.Identifier where
+module Data.Medea.Identifier 
+(
+  Identifier, ReservedIdentifier, PrimTypeIdentifier,
+  parseIdentifier, 
+  tryReserved, parseReserved, parseTypeHeader, parseSchemaHeader, 
+  startIdentifier, forgetReserved,
+  tryPrimType, parsePrimType, forgetPrimType
+) where
 
-import Prelude hiding (length)
-import Control.Monad.Except (MonadError(..))
+import Data.Functor (($>))
+import Data.Char (isSeparator)
+import Control.Monad (when)
+import Text.Megaparsec (MonadParsec(..), 
+                        chunk, customFailure, single, (<|>))
 import Data.Hashable (Hashable)
-import Data.ByteString.Short (length)
-import Data.Text.Short (ShortText, toShortByteString, isPrefixOf)
 
-import qualified Data.Vector as V
+import Data.Text.Utf8 (Utf8String, byteWidth, isPrefixOf, cons)
+import Data.Medea.SchemaError (SchemaError(..))
 
-import Data.Medea.Primitive (Primitive(..))
-import Data.Medea.Types.Lines (LineNumber)
-import Data.Medea.Error (LoaderError, SemanticError(..), throwSemanticError)
-
-newtype Identifier = Identifier ShortText
+newtype Identifier = Identifier Utf8String
   deriving (Eq, Hashable)
 
-makeIdentifier :: (MonadError LoaderError m) => 
-  LineNumber -> ShortText -> m Identifier
-makeIdentifier lineNum st = do
-  let bytely = toShortByteString st
-  if length bytely > 32
-  then throwSemanticError . IdentifierTooLong $ lineNum
-  else pure . Identifier $ st
+parseIdentifier :: (MonadParsec SchemaError Utf8String m) => 
+  m Identifier
+parseIdentifier = do
+  ident <- takeWhile1P Nothing (not . isSeparator)
+  when (byteWidth ident > 32) (customFailure IdentifierTooLong)
+  pure . Identifier $ ident
 
-isReserved :: Identifier -> Bool
-isReserved (Identifier st) = "$" `isPrefixOf` st
+newtype ReservedIdentifier = ReservedIdentifier Utf8String
+  deriving (Eq)
 
-isStarting :: Identifier -> Bool
-isStarting (Identifier st) = "$start" == st
+startIdentifier :: ReservedIdentifier
+startIdentifier = ReservedIdentifier "$start"
 
-isPrimitive :: Identifier -> Bool
-isPrimitive (Identifier st) = V.elem st primitives
-  where primitives = V.fromList ["$null",
-                                 "$number",
-                                 "$boolean",
-                                 "$string",
-                                 "$object",
-                                 "$array"]
+parseReserved :: (MonadParsec SchemaError Utf8String m) => 
+  m ReservedIdentifier
+parseReserved = do
+  lead <- single '$'
+  rest <- takeWhile1P Nothing (not . isSeparator)
+  let ident = cons lead rest
+  when (byteWidth ident > 32) (customFailure IdentifierTooLong)
+  pure . ReservedIdentifier $ ident
 
-start :: Identifier
-start = Identifier "$start"
+parseSchemaHeader :: (MonadParsec SchemaError Utf8String m) => 
+  m ReservedIdentifier
+parseSchemaHeader = do
+  ident <- chunk "$schema"
+  pure . ReservedIdentifier $ ident
 
--- checked _externally_!
-primFromIdentifier :: Identifier -> Primitive
-primFromIdentifier (Identifier st) = case st of
-  "$null" -> NullT
-  "$number" -> NumberT
-  "$boolean" -> BooleanT
-  "$string" -> StringT
-  "$object" -> ObjectT
-  _ -> ArrayT
+parseTypeHeader :: (MonadParsec SchemaError Utf8String m) => 
+  m ReservedIdentifier
+parseTypeHeader = do
+  ident <- chunk "$type"
+  pure . ReservedIdentifier $ ident
+
+tryReserved :: Identifier -> Maybe ReservedIdentifier
+tryReserved (Identifier ident) = 
+  if "$" `isPrefixOf` ident
+  then Just (ReservedIdentifier ident)
+  else Nothing
+
+forgetReserved :: ReservedIdentifier -> Identifier
+forgetReserved (ReservedIdentifier ident) = Identifier ident
+
+data PrimTypeIdentifier =
+  NullIdentifier |
+  BooleanIdentifier |
+  ObjectIdentifier |
+  ArrayIdentifier |
+  NumberIdentifier |
+  StringIdentifier
+  deriving (Eq)
+
+parsePrimType :: (MonadParsec SchemaError Utf8String m) => 
+  m PrimTypeIdentifier
+parsePrimType = chunk "$null" $> NullIdentifier <|> 
+                chunk "$boolean" $> BooleanIdentifier <|>
+                chunk "$object" $> ObjectIdentifier <|>
+                chunk "$array" $> ArrayIdentifier <|>
+                chunk "$number" $> NumberIdentifier <|>
+                chunk "$string" $> StringIdentifier
+
+tryPrimType :: Identifier -> Maybe PrimTypeIdentifier
+tryPrimType (Identifier ident) = case ident of
+  "$null" -> Just NullIdentifier
+  "$boolean" -> Just BooleanIdentifier
+  "$object" -> Just ObjectIdentifier
+  "$array" -> Just ArrayIdentifier
+  "$number" -> Just NumberIdentifier
+  "$string" -> Just StringIdentifier
+  _ -> Nothing
+
+forgetPrimType :: PrimTypeIdentifier -> Identifier
+forgetPrimType = \case
+  NullIdentifier -> Identifier "$null"
+  BooleanIdentifier -> Identifier "$boolean"
+  ObjectIdentifier -> Identifier "$object"
+  ArrayIdentifier -> Identifier "$array"
+  NumberIdentifier -> Identifier "$number"
+  StringIdentifier -> Identifier "$string" 

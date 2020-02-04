@@ -1,27 +1,37 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Data.Medea.Schema where
+module Data.Medea.Schema 
+(
+  Schema,
+  name, getTypes, parseSchema
+) where
 
-import Data.Vector (Vector)
-import Control.Monad.Except (MonadError(..))
+import Text.Megaparsec (MonadParsec(..))
+import Text.Megaparsec.Char (eol, spaceChar)
 
-import Data.Medea.Types.Lines (LineNumber)
-import Data.Medea.Error (LoaderError, SemanticError(..), throwSemanticError)
-import Data.Medea.Primitive (Primitive)
+import Data.Text.Utf8 (Utf8String)
 import Data.Medea.Identifier (Identifier, 
-                              isReserved, isPrimitive, primFromIdentifier)
+                              parseIdentifier, parseSchemaHeader)
+import Data.Medea.Type (TypeSpecification, 
+                        parseTypeSpecification, getReferences)
+import Data.Medea.SchemaError (SchemaError(..))
 
-data TypeInformation = 
-  PrimType Primitive | 
-  SchemaType Identifier 
-
-makeTypeInformation :: (MonadError LoaderError m) => 
-  LineNumber -> Identifier -> m TypeInformation
-makeTypeInformation lineNum ident
-  | isReserved ident && isPrimitive ident = pure . PrimType . primFromIdentifier $ ident
-  | isReserved ident = throwSemanticError . ReservedNonPrimitiveType $ lineNum 
-  | otherwise = pure . SchemaType $ ident
-
-newtype Schema = Schema {
-  typeInfo :: Vector TypeInformation
+data Schema = Schema {
+  name :: !Identifier,
+  types :: !TypeSpecification
 }
+  deriving (Eq)
+
+parseSchema :: (MonadParsec SchemaError Utf8String m) => 
+  m Schema
+parseSchema = do
+  _ <- parseSchemaHeader
+  _ <- spaceChar
+  schemaName <- parseIdentifier
+  _ <- eol
+  ts <- parseTypeSpecification
+  _ <- eol 
+  pure . Schema schemaName $ ts
+
+getTypes :: Schema -> [Identifier]
+getTypes = getReferences . types

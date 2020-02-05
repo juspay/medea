@@ -1,6 +1,6 @@
 module Data.Medea.Parser.Error where 
 
-import Data.Text.Utf8 (Utf8String)
+import Data.Text (Text)
 
-newtype ParseError = IdentifierTooLong Utf8String
+newtype ParseError = IdentifierTooLong Text
   deriving (Eq, Ord)

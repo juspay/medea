@@ -2,10 +2,10 @@
 
 module Data.Medea.Parser.Spec.Schema where 
 
+import Data.Text (Text)
 import Text.Megaparsec (MonadParsec(..))
 import Text.Megaparsec.Char (eol, spaceChar)
 
-import Data.Text.Utf8 (Utf8String)
 import Data.Medea.Parser.Error (ParseError)
 import Data.Medea.Parser.Identifier (Identifier, 
                                      parseIdentifier, parseSchemaHeader)
@@ -18,7 +18,7 @@ data Specification = Specification {
 }
   deriving (Eq)
 
-parseSpecification :: (MonadParsec ParseError Utf8String m) => 
+parseSpecification :: (MonadParsec ParseError Text m) => 
   m Specification
 parseSpecification = do
   _ <- parseSchemaHeader
@@ -26,6 +26,5 @@ parseSpecification = do
   schemaName <- parseIdentifier
   _ <- eol
   ts <- Type.parseSpecification
-  _ <- eol 
   pure . Specification schemaName $ ts
 

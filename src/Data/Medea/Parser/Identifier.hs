@@ -4,47 +4,48 @@
 
 module Data.Medea.Parser.Identifier where 
 
+import Prelude hiding (head)
+import Data.Text (Text, cons, head)
+import Data.Text.Encoding (encodeUtf8)
 import Data.Functor (($>))
 import Data.Char (isSeparator)
-import Control.Monad (when)
 import Text.Megaparsec (MonadParsec(..), 
                         chunk, customFailure, single, (<|>))
 
-import Data.Text.Utf8 (Utf8String, byteWidth, isPrefixOf, cons)
+import qualified Data.ByteString as BS
+
 import Data.Medea.Parser.Error (ParseError(..))
 
-newtype Identifier = Identifier { expose :: Utf8String }
+newtype Identifier = Identifier { toText :: Text }
   deriving (Eq, Ord)
 
-parseIdentifier :: (MonadParsec ParseError Utf8String m) => 
+parseIdentifier :: (MonadParsec ParseError Text m) => 
   m Identifier
 parseIdentifier = do
-  ident <- takeWhile1P Nothing (not . isSeparator)
-  when (byteWidth ident > 32) (customFailure . IdentifierTooLong $ ident)
-  pure . Identifier $ ident
+  ident <- takeWhile1P (Just "Non-separator") (not . isSeparator)
+  checkedConstruct Identifier ident
 
-newtype ReservedIdentifier = ReservedIdentifier Utf8String
+startIdentifier :: Identifier
+startIdentifier = Identifier "$start"
+
+newtype ReservedIdentifier = ReservedIdentifier Text
   deriving (Eq)
 
-startIdentifier :: ReservedIdentifier
-startIdentifier = ReservedIdentifier "$start"
-
-parseReserved :: (MonadParsec ParseError Utf8String m) => 
+parseReserved :: (MonadParsec ParseError Text m) => 
   m ReservedIdentifier
 parseReserved = do
   lead <- single '$'
   rest <- takeWhile1P Nothing (not . isSeparator)
   let ident = cons lead rest
-  when (byteWidth ident > 32) (customFailure . IdentifierTooLong $ ident)
-  pure . ReservedIdentifier $ ident
+  checkedConstruct ReservedIdentifier ident
 
-parseSchemaHeader :: (MonadParsec ParseError Utf8String m) => 
+parseSchemaHeader :: (MonadParsec ParseError Text m) => 
   m ReservedIdentifier
 parseSchemaHeader = do
   ident <- chunk "$schema"
   pure . ReservedIdentifier $ ident
 
-parseTypeHeader :: (MonadParsec ParseError Utf8String m) => 
+parseTypeHeader :: (MonadParsec ParseError Text m) => 
   m ReservedIdentifier
 parseTypeHeader = do
   ident <- chunk "$type"
@@ -52,7 +53,7 @@ parseTypeHeader = do
 
 tryReserved :: Identifier -> Maybe ReservedIdentifier
 tryReserved (Identifier ident) = 
-  if "$" `isPrefixOf` ident
+  if head ident == '$'
   then Just (ReservedIdentifier ident)
   else Nothing
 
@@ -68,7 +69,7 @@ data PrimTypeIdentifier =
   StringIdentifier
   deriving (Eq)
 
-parsePrimType :: (MonadParsec ParseError Utf8String m) => 
+parsePrimType :: (MonadParsec ParseError Text m) => 
   m PrimTypeIdentifier
 parsePrimType = chunk "$null" $> NullIdentifier <|> 
                 chunk "$boolean" $> BooleanIdentifier <|>
@@ -94,4 +95,12 @@ forgetPrimType = \case
   ObjectIdentifier -> Identifier "$object"
   ArrayIdentifier -> Identifier "$array"
   NumberIdentifier -> Identifier "$number"
-  StringIdentifier -> Identifier "$string" 
+  StringIdentifier -> Identifier "$string"
+
+-- Helpers
+checkedConstruct :: (MonadParsec ParseError Text m) => 
+  (Text -> a) -> Text -> m a
+checkedConstruct f t = 
+  if (> 32) . BS.length . encodeUtf8 $ t
+  then customFailure . IdentifierTooLong $ t
+  else pure . f $ t

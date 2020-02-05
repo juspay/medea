@@ -82,11 +82,11 @@ A Medea file is made up of one or more _schemata_. A _schema_ (singular of
 5) Zero or more _specifications_ (defined fully in the subsequent section).
 
 A Medea validator MUST indicate a unique error condition if a schema is defined
-using an identifier that has already been used to define an existing
-schema. Additionally, a Medea validator MUST raise a unique error condition if
-the order, or formation rules, described above (or subsequent in the case of
-type specifications or additional specifications) are violated: each possible
-violation is distinct from any other. 
+with a name that has already been used as the naming identifier of an existing
+schema in the same file. Additionally, a Medea validator MUST raise a unique 
+error condition if the order, or formation rules, described above (or 
+subsequent in the case of type specifications or additional specifications) 
+are violated: each possible violation is distinct from any other. 
 
 Additionally, a Medea graph file MUST contain a schema named ``$start``. A Medea
 validator MUST indicate a unique error condition if no such schema is defined.

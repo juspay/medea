@@ -11,6 +11,7 @@ module Data.Medea.Loader
 
 import Control.Monad.Except (MonadError(..))
 import Data.Text (Text)
+import Data.Text.Encoding (decodeUtf8')
 import Data.Void (Void)
 import Text.Megaparsec (ParseError(..), bundleErrors, parse)
 import Prelude hiding (readFile)
@@ -21,7 +22,6 @@ import Data.ByteString (ByteString, readFile, hGetContents)
 import qualified Data.List.NonEmpty as NE
 
 import Data.Medea.Schema (Schema(..))
-import Data.Text.Utf8 (Utf8String, fromByteString)
 
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
 
@@ -32,7 +32,9 @@ data LoaderError =
   -- | An identifier was longer than allowed.
   IdentifierTooLong | 
   -- | Parsing failed.
-  ParserError (ParseError Text Void)
+  ParserError (ParseError Text Void) |
+  -- | No schema labelled $start was provided.
+  NoStartSchema
   deriving (Show)
 
 -- | Attempt to produce a schema from binary data in memory. 
@@ -61,11 +63,11 @@ loadSchemaFromHandle h = do
 -- Helper
 
 parseUtf8 :: (MonadError LoaderError m) => 
-  ByteString -> m Utf8String
-parseUtf8 = maybe (throwError NotUtf8) pure . fromByteString
+  ByteString -> m Text
+parseUtf8 = either (const (throwError NotUtf8)) pure . decodeUtf8'
 
 fromUtf8 :: (MonadError LoaderError m) => 
-  String -> Utf8String -> m Schema
+  String -> Text -> m Schema
 fromUtf8 sourceName utf8 = 
   case parse Schemata.parseSpecification sourceName utf8 of
     Left err -> case NE.head . bundleErrors $ err of

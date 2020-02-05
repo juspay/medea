@@ -50,6 +50,7 @@ test-suite conformance-parser
   main-is:              Main.hs
   build-depends:        base,
                         medea,
+                        mtl,
                         hspec >= 2.7.1 && < 2.8.0,
                         directory >= 1.3.3.0 && < 1.4.0.0,
                         filepath >= 1.4.2.1 && < 1.5.0.0

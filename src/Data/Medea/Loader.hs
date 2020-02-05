@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Data.Medea.Loader 
 (
   LoaderError(..),
@@ -7,6 +9,7 @@ module Data.Medea.Loader
   loadSchemaFromHandle
 ) where
 
+import Control.Monad.Except (MonadError(..))
 import Data.Text (Text)
 import Data.Void (Void)
 import Text.Megaparsec (ParseError(..), bundleErrors, parse)
@@ -33,35 +36,40 @@ data LoaderError =
   deriving (Show)
 
 -- | Attempt to produce a schema from binary data in memory. 
-buildSchema :: ByteString -> Either LoaderError Schema
-buildSchema bs = case fromByteString bs of
-  Nothing -> Left NotUtf8
-  Just utf8 -> fromUtf8 ":memory:" utf8
+buildSchema :: (MonadError LoaderError m) => 
+  ByteString -> m Schema
+buildSchema bs = do
+  utf8 <- parseUtf8 bs
+  fromUtf8 ":memory:" utf8
 
 -- | Parse and process a Medea schema graph file.
-loadSchemaFromFile :: (MonadIO m) => 
-  FilePath -> m (Either LoaderError Schema)
+loadSchemaFromFile :: (MonadIO m, MonadError LoaderError m) => 
+  FilePath -> m Schema
 loadSchemaFromFile fp = do
   contents <- liftIO . readFile $ fp
-  case fromByteString contents of
-    Nothing -> pure . Left $ NotUtf8
-    Just utf8 -> pure . fromUtf8 fp $ utf8
+  utf8 <- parseUtf8 contents
+  fromUtf8 fp utf8
 
 -- | Load data corresponding to a Medea schema graph file from a 'Handle'.
-loadSchemaFromHandle :: (MonadIO m) => 
-  Handle -> m (Either LoaderError Schema)
+loadSchemaFromHandle :: (MonadIO m, MonadError LoaderError m) => 
+  Handle -> m Schema
 loadSchemaFromHandle h = do
   contents <- liftIO . hGetContents $ h
-  case fromByteString contents of
-    Nothing -> pure . Left $ NotUtf8
-    Just utf8 -> pure . fromUtf8 (show h) $ utf8
+  utf8 <- parseUtf8 contents
+  fromUtf8 (show h) utf8
 
 -- Helper
 
-fromUtf8 :: String -> Utf8String -> Either LoaderError Schema
+parseUtf8 :: (MonadError LoaderError m) => 
+  ByteString -> m Utf8String
+parseUtf8 = maybe (throwError NotUtf8) pure . fromByteString
+
+fromUtf8 :: (MonadError LoaderError m) => 
+  String -> Utf8String -> m Schema
 fromUtf8 sourceName utf8 = 
   case parse Schemata.parseSpecification sourceName utf8 of
     Left err -> case NE.head . bundleErrors $ err of
-      TrivialError o u e -> Left . ParserError . TrivialError o u $ e
-      FancyError{} -> Left IdentifierTooLong
-    Right _ -> Right Schema -- TODO: analysis pass!
+      TrivialError o u e -> throwError . ParserError . TrivialError o u $ e
+      FancyError{} -> throwError IdentifierTooLong
+    Right _ -> pure Schema -- TODO: analysis pass!
+

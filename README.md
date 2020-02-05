@@ -4,8 +4,6 @@
 
 ### Medea is _efficient_
 
-* Medea's schema graph file format is designed for one-pass parsing, meaning
-  that it can be done as a stream.
 * Medea identifiers are limited in length, and each one can easily fit into a
   cache line.
 
@@ -21,7 +19,4 @@
 ### Medea is _user-friendly_
 
 * Medea's schema graph file format is plain UTF-8 text, with minimal syntax.
-
-### Medea is _portable_
-
 

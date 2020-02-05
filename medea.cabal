@@ -1,8 +1,10 @@
 cabal-version:          2.2
 name:                   medea
 version:                1.0.0
-synopsis:               An eDSL for schema construction and validation for JSON.
-description:            Insert one here later.
+synopsis:               A schema language JSON.
+description:            This repo hosts a specification for a schema language, 
+                        an extensive conformance suite, and a reference 
+                        implementation of both a schema loader and validator.
 homepage:               https://bitbucket.org/juspay/medea/src
 bug-reports:            mailto:koz.ross@juspay.in
 license:                MIT

@@ -17,7 +17,7 @@ import qualified Data.ByteString as BS
 import Data.Medea.Parser.Error (ParseError(..))
 
 newtype Identifier = Identifier { toText :: Text }
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Show)
 
 parseIdentifier :: (MonadParsec ParseError Text m) => 
   m Identifier

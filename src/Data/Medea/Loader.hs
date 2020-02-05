@@ -9,7 +9,7 @@ module Data.Medea.Loader
   loadSchemaFromHandle
 ) where
 
-import Control.Monad.Except (MonadError(..))
+import Control.Monad.Except (MonadError(..), runExcept)
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8')
 import Data.Void (Void)
@@ -18,9 +18,13 @@ import Prelude hiding (readFile)
 import System.IO (Handle)
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.ByteString (ByteString, readFile, hGetContents)
+import Algebra.Graph.Acyclic.AdjacencyMap (AdjacencyMap)
 
 import qualified Data.List.NonEmpty as NE
 
+import Data.Medea.Parser.Identifier (toText)
+import Data.Medea.Analysis (TypeNode, AnalysisError(..),
+                            intoAcyclic, intoEdges, intoMap, checkStartSchema)
 import Data.Medea.Schema (Schema(..))
 
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
@@ -34,7 +38,13 @@ data LoaderError =
   -- | Parsing failed.
   ParserError (ParseError Text Void) |
   -- | No schema labelled $start was provided.
-  NoStartSchema
+  StartSchemaMissing |
+  -- | A schema was typed in terms of itself.
+  SelfTypingSchema |
+  -- | A schema was defined more than once.
+  MultipleSchemaDefinition Text | -- ^ re-used name
+  -- | A schema contains a type specifier aiming at an undefined schema.
+  MissingSchemaDefinition Text -- ^ name of the undefined schema
   deriving (Show)
 
 -- | Attempt to produce a schema from binary data in memory. 
@@ -42,7 +52,8 @@ buildSchema :: (MonadError LoaderError m) =>
   ByteString -> m Schema
 buildSchema bs = do
   utf8 <- parseUtf8 bs
-  fromUtf8 ":memory:" utf8
+  spec <- fromUtf8 ":memory:" utf8
+  Schema <$> analyze spec
 
 -- | Parse and process a Medea schema graph file.
 loadSchemaFromFile :: (MonadIO m, MonadError LoaderError m) => 
@@ -50,7 +61,8 @@ loadSchemaFromFile :: (MonadIO m, MonadError LoaderError m) =>
 loadSchemaFromFile fp = do
   contents <- liftIO . readFile $ fp
   utf8 <- parseUtf8 contents
-  fromUtf8 fp utf8
+  spec <- fromUtf8 fp utf8
+  Schema <$> analyze spec
 
 -- | Load data corresponding to a Medea schema graph file from a 'Handle'.
 loadSchemaFromHandle :: (MonadIO m, MonadError LoaderError m) => 
@@ -58,7 +70,8 @@ loadSchemaFromHandle :: (MonadIO m, MonadError LoaderError m) =>
 loadSchemaFromHandle h = do
   contents <- liftIO . hGetContents $ h
   utf8 <- parseUtf8 contents
-  fromUtf8 (show h) utf8
+  spec <- fromUtf8 (show h) utf8
+  Schema <$> analyze spec
 
 -- Helper
 
@@ -67,11 +80,24 @@ parseUtf8 :: (MonadError LoaderError m) =>
 parseUtf8 = either (const (throwError NotUtf8)) pure . decodeUtf8'
 
 fromUtf8 :: (MonadError LoaderError m) => 
-  String -> Text -> m Schema
+  String -> Text -> m Schemata.Specification
 fromUtf8 sourceName utf8 = 
   case parse Schemata.parseSpecification sourceName utf8 of
     Left err -> case NE.head . bundleErrors $ err of
       TrivialError o u e -> throwError . ParserError . TrivialError o u $ e
       FancyError{} -> throwError IdentifierTooLong
-    Right _ -> pure Schema -- TODO: analysis pass!
+    Right scm -> pure scm 
 
+analyze :: (MonadError LoaderError m) => 
+  Schemata.Specification -> m (AdjacencyMap TypeNode)
+analyze scm = case runExcept go of
+  Left (DuplicateSchemaName ident) -> throwError . MultipleSchemaDefinition . toText $ ident
+  Left NoStartSchema -> throwError StartSchemaMissing
+  Left (DanglingTypeReference ident) -> throwError . MissingSchemaDefinition . toText $ ident
+  Left TypeRelationIsCyclic -> throwError SelfTypingSchema
+  Right g -> pure g
+  where go = do
+          m <- intoMap scm
+          startSchema <- checkStartSchema m
+          edges <- intoEdges m startSchema
+          intoAcyclic edges

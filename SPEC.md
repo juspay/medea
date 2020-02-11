@@ -27,7 +27,7 @@ end of a line.
 
 A Medea _identifier_ is a non-empty sequence of UTF-8 scalar values (as defined by
 [definition D76 (pdf)][d76] of the Unicode 5.2 standard), not exceeding 32 bytes
-in length, containing no symbols from categories [Zs, Zl or Zp][categories]. If 
+in length, containing no symbols from categories [Zs, Zl, Zp or Cc][categories]. If 
 limited to text using the ASCII code points only, this means a limit of 32 
 symbols. A Medea validator MUST indicate a unique error condition if given an 
 identifier that contains more than this number of symbols. 

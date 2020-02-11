@@ -7,7 +7,7 @@ description:            This repo hosts a specification for a schema language,
                         implementation of both a schema loader and validator.
 homepage:               https://bitbucket.org/juspay/medea/src
 bug-reports:            mailto:koz.ross@juspay.in
-license:                AllRightsReserved
+license:                NONE
 author:                 Koz Ross
 maintainer:             koz.ross@juspay.in
 copyright:              Juspay Technologies Pvt Ltd (C) 2020
@@ -16,7 +16,6 @@ build-type:             Simple
 tested-with:            GHC == 8.6.5
 extra-source-files:     CHANGELOG.md,
                         README.md,
-                        LICENSE.md,
                         SPEC.md,
                         conformance/parser/*.medea,
                         conformance/schema-builder/*.medea

@@ -4,6 +4,7 @@ $schema $start
 
 $schema foo
     $type
+        $boolean
 
 $schema foo
     $type

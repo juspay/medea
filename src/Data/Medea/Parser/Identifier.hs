@@ -8,7 +8,7 @@ import Prelude hiding (head)
 import Data.Text (Text, cons, head)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Functor (($>))
-import Data.Char (isSeparator)
+import Data.Char (isSeparator, isControl)
 import Text.Megaparsec (MonadParsec(..), 
                         chunk, customFailure, single, (<|>))
 
@@ -19,10 +19,13 @@ import Data.Medea.Parser.Error (ParseError(..))
 newtype Identifier = Identifier { toText :: Text }
   deriving (Eq, Ord, Show)
 
+isSeparatorOrControl :: Char -> Bool
+isSeparatorOrControl c = isSeparator c || isControl c
+
 parseIdentifier :: (MonadParsec ParseError Text m) => 
   m Identifier
 parseIdentifier = do
-  ident <- takeWhile1P (Just "Non-separator") (not . isSeparator)
+  ident <- takeWhile1P (Just "Non-separator") (not . isSeparatorOrControl)
   checkedConstruct Identifier ident
 
 startIdentifier :: Identifier
@@ -35,7 +38,7 @@ parseReserved :: (MonadParsec ParseError Text m) =>
   m ReservedIdentifier
 parseReserved = do
   lead <- single '$'
-  rest <- takeWhile1P Nothing (not . isSeparator)
+  rest <- takeWhile1P Nothing (not . isSeparatorOrControl)
   let ident = cons lead rest
   checkedConstruct ReservedIdentifier ident
 

@@ -3,7 +3,7 @@
 module Data.Medea.Parser.Spec.Schemata where
 
 import Data.Text (Text)
-import Text.Megaparsec (MonadParsec(..), many)
+import Text.Megaparsec (MonadParsec(..), sepBy1)
 import Text.Megaparsec.Char (eol)
 import Data.Vector (Vector)
 
@@ -18,6 +18,6 @@ newtype Specification = Specification (Vector Schema.Specification)
 parseSpecification :: (MonadParsec ParseError Text m) => 
   m Specification
 parseSpecification = do
-  spec <- Schema.parseSpecification
-  specs <- many (eol *> Schema.parseSpecification)
-  pure . Specification . V.fromList $ (spec : specs)
+  specs <- Schema.parseSpecification `sepBy1` eol
+  eof
+  pure . Specification . V.fromList $ specs

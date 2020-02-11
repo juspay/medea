@@ -23,4 +23,5 @@ isParseError (Right _) = False
 
 -- TODO: Fill in properly
 isSchemaError :: Either LoaderError a -> Bool
-isSchemaError = not . isParseError
+isSchemaError (Right _)  = False
+isSchemaError a          = not . isParseError $ a

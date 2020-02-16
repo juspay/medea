@@ -25,7 +25,8 @@ source-repository       head
   location:             https://bitbucket.org/juspay/medea.git
 
 library
-  exposed-modules:      Data.Medea.Loader
+  exposed-modules:      Data.Medea.Loader,
+                        Data.Medea.JSONType
   other-modules:        Data.Medea.Analysis,
                         Data.Medea.Parser.Error,
                         Data.Medea.Parser.Identifier,

@@ -14,6 +14,7 @@ import TestM (runTestM, isParseError, isSchemaError)
 
 main :: IO ()
 main = hspec $ do
+  describe "Any schema" . testAny $ "./conformance/validation/any.medea"
   describe "Null schema" . testSingular "./conformance/validation/null.medea" "null" $ isNull
   describe "Boolean schema" . testSingular "./conformance/validation/boolean.medea" "boolean" $ isBool
   describe "Number schema" . testSingular "./conformance/validation/number.medea" "number" $ isNumber
@@ -22,6 +23,12 @@ main = hspec $ do
   describe "Object schema" . testSingular "./conformance/validation/object.medea" "object" $ isObject
 
 -- Helpers
+
+testAny :: FilePath -> Spec
+testAny fp = do
+  scm <- loadAndParse fp
+  it ("Should validate anything: " ++ fp) (property . forAll arbitrary . go $ scm)
+  where go scm (RandomJSON v) = isRight . validateEither scm $ v
 
 testSingular :: FilePath -> String -> (Value -> Bool) -> Spec
 testSingular fp name p = do
@@ -37,5 +44,5 @@ loadAndParse fp = do
   it ("Should parse: " ++ fp) (result `shouldNotSatisfy` isParseError)
   it ("Should build: " ++ fp) (result `shouldNotSatisfy` isSchemaError)
   case result of
-    Left _ -> error "This should never happen"
+    Left e -> error ("This should never happen: " ++ show e)
     Right scm -> pure scm 

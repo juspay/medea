@@ -18,10 +18,12 @@ isParseError :: Either LoaderError a -> Bool
 isParseError (Left NotUtf8) = True
 isParseError (Left IdentifierTooLong) = True
 isParseError (Left (ParserError _)) = True
-isParseError (Left _) = False
-isParseError (Right _) = False
+isParseError _  = False
 
 -- TODO: Fill in properly
 isSchemaError :: Either LoaderError a -> Bool
-isSchemaError (Right _)  = False
-isSchemaError a          = not . isParseError $ a
+isSchemaError (Left StartSchemaMissing) = True
+isSchemaError (Left SelfTypingSchema) = True
+isSchemaError (Left (MultipleSchemaDefinition _)) = True
+isSchemaError (Left (MissingSchemaDefinition _)) = True
+isSchemaError _ = False

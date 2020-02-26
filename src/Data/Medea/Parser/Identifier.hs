@@ -4,6 +4,7 @@
 module Data.Medea.Parser.Identifier where 
 
 import Prelude hiding (head)
+import Data.Maybe (isJust)
 import Data.Text (Text, cons, head)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Functor (($>))
@@ -95,6 +96,12 @@ forgetPrimType ident = case typeOf ident of
   JSONArray -> Identifier "$array"
   JSONNumber -> Identifier "$number"
   JSONString -> Identifier "$string"
+
+isReserved :: Identifier -> Bool
+isReserved = isJust . tryReserved
+
+isStartIdent :: Identifier -> Bool
+isStartIdent = (== Identifier "$start")
 
 -- Helpers
 checkedConstruct :: (MonadParsec ParseError Text m) => 

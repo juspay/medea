@@ -6,7 +6,7 @@ module Data.Medea.Analysis where
 
 import Control.Monad.Except (MonadError(..))
 import Control.Monad.State.Strict (evalStateT, gets, modify)
-import Control.Monad (foldM)
+import Control.Monad (foldM, when)
 import Data.Map.Strict (Map)
 
 import Algebra.Graph.Acyclic.AdjacencyMap (AdjacencyMap, toAcyclic)
@@ -15,8 +15,9 @@ import qualified Data.Set as S
 import qualified Data.Map.Strict as M
 import qualified Algebra.Graph.AdjacencyMap as Cyclic
 
-import Data.Medea.Parser.Identifier (Identifier, PrimTypeIdentifier(..), 
-                                     startIdentifier, tryPrimType, typeOf)
+import Data.Medea.Parser.Identifier (Identifier, PrimTypeIdentifier(..),
+                                     isReserved, isStartIdent, startIdentifier,
+                                     tryPrimType, typeOf)
 import Data.Medea.JSONType (JSONType(..))
 import Data.Medea.Parser.Spec.Type (getReferences)
 
@@ -27,7 +28,8 @@ data AnalysisError =
   DuplicateSchemaName Identifier |
   NoStartSchema |
   DanglingTypeReference Identifier |
-  TypeRelationIsCyclic 
+  TypeRelationIsCyclic |
+  ReservedDefined Identifier
 
 data TypeNode =
   PrimitiveNode JSONType | 
@@ -58,13 +60,18 @@ intoEdges m spec = evalStateT (go [] spec startIdentifier) S.empty
             Just scm -> (:) <$> pure (u, CustomNode t) <*> go [] scm t
           Just prim -> pure . pure . (u,) . PrimitiveNode . typeOf $ prim
 
-intoMap :: (MonadError AnalysisError m) => 
+intoMap :: (MonadError AnalysisError m) =>
   Schemata.Specification -> m (Map Identifier Schema.Specification)
 intoMap (Schemata.Specification v) = foldM go M.empty v
   where go acc spec = M.alterF (checkedInsert spec) (Schema.name spec) acc
-        checkedInsert spec = \case 
-          Nothing -> pure . Just $ spec
-          Just _ -> throwError . DuplicateSchemaName . Schema.name $ spec
+        checkedInsert spec = \case
+          Nothing -> do
+            when (isReserved ident && (not . isStartIdent) ident) $
+              throwError . ReservedDefined $ ident
+            pure . Just $ spec
+          Just _ -> throwError . DuplicateSchemaName $ ident
+          where
+            ident = Schema.name spec
 
 checkStartSchema :: (MonadError AnalysisError m) => 
   Map Identifier Schema.Specification -> m Schema.Specification

@@ -8,7 +8,8 @@ description:            This repo hosts a specification for a schema language,
 homepage:               https://bitbucket.org/juspay/medea/src
 bug-reports:            mailto:koz.ross@juspay.in
 license:                NONE
-author:                 Koz Ross
+author:                 Koz Ross,
+                        Sharya Gupta
 maintainer:             koz.ross@juspay.in
 copyright:              Juspay Technologies Pvt Ltd (C) 2020
 category:               Data

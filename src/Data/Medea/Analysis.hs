@@ -8,14 +8,16 @@ import Control.Monad.Except (MonadError(..))
 import Control.Monad.State.Strict (evalStateT, gets, modify)
 import Control.Monad (foldM)
 import Data.Map.Strict (Map)
-import Data.Medea.Parser.Identifier (Identifier, PrimTypeIdentifier(..), 
-                                     startIdentifier, tryPrimType)
+
 import Algebra.Graph.Acyclic.AdjacencyMap (AdjacencyMap, toAcyclic)
 
 import qualified Data.Set as S
 import qualified Data.Map.Strict as M
 import qualified Algebra.Graph.AdjacencyMap as Cyclic
 
+import Data.Medea.Parser.Identifier (Identifier, PrimTypeIdentifier(..), 
+                                     startIdentifier, tryPrimType, typeOf)
+import Data.Medea.JSONType (JSONType(..))
 import Data.Medea.Parser.Spec.Type (getReferences)
 
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
@@ -27,13 +29,8 @@ data AnalysisError =
   DanglingTypeReference Identifier |
   TypeRelationIsCyclic 
 
-data TypeNode = 
-  NullNode |
-  BooleanNode |
-  ObjectNode |
-  ArrayNode |
-  NumberNode |
-  StringNode |
+data TypeNode =
+  PrimitiveNode JSONType | 
   AnyNode |
   CustomNode Identifier
   deriving (Eq, Ord, Show) 
@@ -53,20 +50,13 @@ intoEdges m spec = evalStateT (go [] spec startIdentifier) S.empty
           else do
             modify (S.insert newNode)
             case getReferences . Schema.types $ scm of
-              [] -> pure ((newNode, NullNode) : acc)
-              ell@(_ : _) -> (acc <>) . concat <$> traverse (resolveLinks newNode) ell
+              [] -> pure ((newNode, AnyNode) : acc)
+              ell -> (acc <>) . concat <$> traverse (resolveLinks newNode) ell
         resolveLinks u t = case tryPrimType t of
           Nothing -> case M.lookup t m of
             Nothing -> throwError . DanglingTypeReference $ t
             Just scm -> (:) <$> pure (u, CustomNode t) <*> go [] scm t
-          Just prim -> pure . pure . (u,) . intoTypeNode $ prim
-        intoTypeNode = \case
-          NullIdentifier -> NullNode
-          BooleanIdentifier -> BooleanNode
-          ObjectIdentifier -> ObjectNode
-          ArrayIdentifier -> ArrayNode
-          NumberIdentifier -> NumberNode
-          StringIdentifier -> StringNode
+          Just prim -> pure . pure . (u,) . PrimitiveNode . typeOf $ prim
 
 intoMap :: (MonadError AnalysisError m) => 
   Schemata.Specification -> m (Map Identifier Schema.Specification)

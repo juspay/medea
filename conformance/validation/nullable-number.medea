@@ -1,0 +1,4 @@
+$schema $start
+    $type
+        $number
+        $null

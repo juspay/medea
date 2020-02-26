@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase #-}
 
 module Data.Medea.Parser.Identifier where 
 
@@ -14,6 +13,7 @@ import Text.Megaparsec (MonadParsec(..),
 
 import qualified Data.ByteString as BS
 
+import Data.Medea.JSONType (JSONType(..))
 import Data.Medea.Parser.Error (ParseError(..))
 
 newtype Identifier = Identifier { toText :: Text }
@@ -63,42 +63,38 @@ tryReserved (Identifier ident) =
 forgetReserved :: ReservedIdentifier -> Identifier
 forgetReserved (ReservedIdentifier ident) = Identifier ident
 
-data PrimTypeIdentifier =
-  NullIdentifier |
-  BooleanIdentifier |
-  ObjectIdentifier |
-  ArrayIdentifier |
-  NumberIdentifier |
-  StringIdentifier
+newtype PrimTypeIdentifier = PrimTypeIdentifier { typeOf :: JSONType }
   deriving (Eq)
 
 parsePrimType :: (MonadParsec ParseError Text m) => 
   m PrimTypeIdentifier
-parsePrimType = chunk "$null" $> NullIdentifier <|> 
-                chunk "$boolean" $> BooleanIdentifier <|>
-                chunk "$object" $> ObjectIdentifier <|>
-                chunk "$array" $> ArrayIdentifier <|>
-                chunk "$number" $> NumberIdentifier <|>
-                chunk "$string" $> StringIdentifier
+parsePrimType = PrimTypeIdentifier <$> 
+                (chunk "$null" $> JSONNull <|> 
+                 chunk "$boolean" $> JSONBoolean <|>
+                 chunk "$object" $> JSONObject <|>
+                 chunk "$array" $> JSONArray <|>
+                 chunk "$number" $> JSONNumber <|>
+                 chunk "$string" $> JSONString)
 
 tryPrimType :: Identifier -> Maybe PrimTypeIdentifier
-tryPrimType (Identifier ident) = case ident of
-  "$null" -> Just NullIdentifier
-  "$boolean" -> Just BooleanIdentifier
-  "$object" -> Just ObjectIdentifier
-  "$array" -> Just ArrayIdentifier
-  "$number" -> Just NumberIdentifier
-  "$string" -> Just StringIdentifier
-  _ -> Nothing
+tryPrimType (Identifier ident) = PrimTypeIdentifier <$> 
+  (case ident of
+    "$null" -> Just JSONNull
+    "$boolean" -> Just JSONBoolean
+    "$object" -> Just JSONObject
+    "$array" -> Just JSONArray
+    "$number" -> Just JSONNumber
+    "$string" -> Just JSONString
+    _ -> Nothing)
 
 forgetPrimType :: PrimTypeIdentifier -> Identifier
-forgetPrimType = \case
-  NullIdentifier -> Identifier "$null"
-  BooleanIdentifier -> Identifier "$boolean"
-  ObjectIdentifier -> Identifier "$object"
-  ArrayIdentifier -> Identifier "$array"
-  NumberIdentifier -> Identifier "$number"
-  StringIdentifier -> Identifier "$string"
+forgetPrimType ident = case typeOf ident of
+  JSONNull -> Identifier "$null"
+  JSONBoolean -> Identifier "$boolean"
+  JSONObject -> Identifier "$object"
+  JSONArray -> Identifier "$array"
+  JSONNumber -> Identifier "$number"
+  JSONString -> Identifier "$string"
 
 -- Helpers
 checkedConstruct :: (MonadParsec ParseError Text m) => 

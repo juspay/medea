@@ -42,6 +42,25 @@ unique error condition in such a case.
 
 Unless stated otherwise, a Medea identifier is _non-reserved_.
 
+## Strings
+
+A Medea _string_ is a non-empty sequence of UTF-8 scalar values (as defined by
+[definition D76 (pdf)][d76] of the Unicode 5.2 standard), containing no symbols
+from categories [Zs, Zl, Zp or Cc][categories]. Furthermore, the first and last
+symbol of a Medea string must both be QUOTATION MARK Unicode character (hex code
+0x22). [note about string validation?]
+
+## Natural numbers
+
+A Medea _natural number_ is a non-empty sequence of UTF-8 scalar values (as
+defined by [definition D76 (pdf)][d76] of the Unicode 5.2 standard), containing
+only symbols from DIGIT ZERO to DIGIT NINE inclusive (hex codes 0x30 to 0x39),
+and not starting with DIGIT ZERO (hex code 0x30). [note about whitespace ending
+a number?]
+
+The _value_ of a Medea natural number is the natural number which it textually
+represents.
+
 ## Primitive type
 
 A Medea _primitive type_ corresponds to a set of basic types, as provided by
@@ -123,7 +142,168 @@ Each of the subsequent entries has the following format:
   error condition if any of these are violated.
 * **Default:** Describes the validation behaviour of a schema missing this
   specification.
+
+#### Array dimensions specification
+
+**Description:** An _array dimension specification_ describes the minimum and
+maximum length of an array. 
+
+**Preconditions:** The schema must have a type specifier by which a JSON array
+would be considered valid.
+
+**Syntax:** An array dimensions specification MUST consist of the following, in
+this order:
+
+1) Four space symbols;
+2) The reserved identifier ``$length``;
+3) A newline; and
+4) One, or both of: a _minimum length specification_, a _maximum length
+specification_; in any order.
+
+A minimum length specification MUST consist of the following, in this order:
+
+1) Eight space symbols;
+2) The reserved identifier ``$minimum``;
+3) A single space symbol; 
+4) A Medea natural number; and
+5) A newline.
+
+A maximum length specification MUST consist of the following, in this order:
+
+1) Eight space symbols;
+2) The reserved identifier ``$maximum``;
+3) A single space symbol;
+4) A Medea natural number; and
+5) A newline.
+
+**Semantics:** A JSON value is considered valid by this specificer if it is a
+JSON array. Additionally, if a minimum length specification is provided, the
+array must have at least as many elements as the value of the Medea natural
+number in said specification. Furthermore, if a maximum length specification is
+provided, the array must have no more elements than the value of the Medea
+natural number in said specification.
+
+**Postconditions:** A Medea validator MUST indicate a unique error condition if
+the value of the Medea natural number in a minimum length specification is
+greater than the value of the Medea natural number in a maximum length
+specification in the same array dimensions specification.
+
+A Medea validator SHOULD indicate a unique error condition if the value of the
+Medea natural number in a minimum length specification is 0. 
+
+**Default:** An array may have any length (no minimum or maximum).
+
+#### Object meta-property specification
+
+**Description:** An _object meta-property specification_ describes the
+'properties of properties': whether any properties are required, and whether
+additional properties are allowed.
+
+**Preconditions:** The schema must have a type specifier by which a JSON object
+would be considered valid.
+
+**Syntax:** An object meta-property specification MUST consist of the following,
+in this order:
+
+1) Four space symbols;
+2) The reserved identifier ``$meta-properties``;
+3) A newline; and
+4) One, or both of: a _required property specification_, an _additional
+property ban_; in any order.
+
+A required property specification MUST consist of the following, in this order:
+
+1) Eight space symbols;
+2) The reserved identifier ``$optional-properties``;
+3) A newline; and
+4) Zero or more _required property lines_;
+
+A required property line MUST consist of the following, in this order:
+
+1) Twelve space symbols;
+2) A Medea string; and
+3) A newline
+
+An additional property ban MUST consist of the following, in this order:
+
+1) The reserved identifier ``$no-additional-properties``; and
+2) A newline  
+
+If a required property specification is given, but an additional property ban is
+not, then at least one required property line MUST be given.
+
+**Semantics:** A JSON value is considered valid by this specifier if it is a
+JSON object. Additionally, if a required property specification is provided, for
+each of its required property lines, the object must have a property with this
+name with a property value (that is, not `undefined`). Furthermore, if an
+additional property ban is given, the JSON object may not possess properties not
+allowed by its object property specification. 
+
+**Postconditions:** None. 
+
+**Default:** All properties required by the object property specification are
+required, and additional properties are allowed.
+
+#### Object property specification 
  
+**Description:** An _object property specification_ describes permitted
+properties for an object, and what schemata they must validate against. 
+
+**Preconditions:** The schema must have a type specifier by which a JSON object
+would be considered valid.
+
+**Syntax:** An object property specification MUST consist of the following, in
+this order:
+
+1) Four space symbols;
+2) The reserved identifier ``$properties``;
+3) A newline; and
+4) One or more _object property specifier sections_.
+
+Each object property specifier sections MUST consist of the following, in this
+order:
+
+1) Eight space symbols;
+2) A Medea string;
+3) A newline; and
+4) Zero or more _object property schema lines_.
+
+Each object property schema line MUST consist of the following, in this order:
+
+1) Twelve space symbols;
+2) _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
+  ``$array``, ``$number``, ``$string``; and
+3) A newline. 
+
+**Semantics:** A JSON value is considered valid by this specifier if it a JSON
+object, and for each of its object property specifier sections, the following
+all hold:
+
+* The object has a property whose name matches the Medea string given in said
+  object property specifier section;
+* The value of said property is valid by _any_ of its object property schema
+  lines.
+
+A property value is always valid by zero property schema lines. For more than
+one line, the following validation rules apply, based on the identifier in the
+line:
+
+* ``$null``: The property value is `null`.
+* ``$boolean``: The property value is a JSON boolean.
+* ``$object``: The property value is a JSON object.
+* ``$array``: The property value is a JSON array.
+* ``$number``: The property value is a JSON number.
+* ``$string``: The property value is a JSON string.
+* Any other identifier: The property value is valid according to the schema
+  named by this identifier. 
+
+**Postconditions:** A Medea validator MUST indicate a unique error condition if
+an identifier in an object property schema line does not correspond to any
+schema defined in the current schema file.
+
+**Default:** A JSON object is considered valid regardless of what properties it
+does, or does not, have, by this specifier.
+
 #### Type specification
 
 **Description:** A _type specification_ describes basic rules of form for JSON
@@ -154,7 +334,7 @@ individual identifier, the following validation rules apply:
 * ``$object``: The JSON value is a JSON object.
 * ``$array``: The JSON value is a JSON array.
 * ``$number``: The JSON value is a JSON number.
-* ``string``: The JSON value is a JSON string.
+* ``$string``: The JSON value is a JSON string.
 * Any other identifier: The JSON value is valid according to the schema named by
   this identifier.
 

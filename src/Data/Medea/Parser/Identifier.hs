@@ -84,7 +84,7 @@ tryPrimType (Identifier ident) = PrimTypeIdentifier <$>
     "$object" -> Just JSONObject
     "$array" -> Just JSONArray
     "$number" -> Just JSONNumber
-    "$string" -> Just JSONNumber
+    "$string" -> Just JSONString
     _ -> Nothing)
 
 forgetPrimType :: PrimTypeIdentifier -> Identifier

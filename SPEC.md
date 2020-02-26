@@ -111,11 +111,16 @@ Each of the subsequent entries has the following format:
 
 * **Description:** An overview of the purpose and intended semantics of this
   specification.
-* **Preconditions:**
+* **Preconditions:** Any requirements of the schema that MUST be met for this
+  type specifier to be valid. A Medea validator MUST indicate a unique error
+  condition when these are not met.
 * **Syntax:** Describes the rules of form for this specification type. A Medea
   validator MUST indicate a unique error condition if any of these are violated.
 * **Semantics:** Describes how this specification affects the validation
   behaviour of its schema.
+* **Postconditions:** Any requirements or restrictions on the use of this type
+  specifier of a non-syntactic nature. A Medea validator MUST indicate a unique
+  error condition if any of these are violated.
 * **Default:** Describes the validation behaviour of a schema missing this
   specification.
  
@@ -140,7 +145,6 @@ Each type specifier line MUST consist of the following, in this order:
   ``$array``, ``$number``, ``$string``; and
 3) A newline.
 
-[TODO: Add note about the type relation graph being acyclic?]
 
 **Semantics:** A JSON value is considered valid by this specifier if it is valid
 by _any_ of the identifiers provided for all of its type specifiers. For each
@@ -155,7 +159,23 @@ individual identifier, the following validation rules apply:
 * Any other identifier: The JSON value is valid according to the schema named by
   this identifier.
 
-A Medea VALIDATOR must indicate a unique error condition if an identifier in a
+**Postconditions:** Let _S, T_ be schemata in a single Medea schema graph i
+file. We say that _S types as T_ if:
+
+* _S_ has a type specifier; and
+* The type specifier of _S_ contains a type specifier line with the naming
+  identifier of _T_.
+
+For any schema _S_, the _typing neighbourhood of S_ (denoted _T(S)_) is the
+transitive closure of the 'types as' relation for _S_. We say that schema _S_ is
+_circularly-typed_ if _S_ is a member of _T(S)_.
+
+The type specifiers of a Medea schema graph file MUST NOT induce the circular
+typing of any schema within it. A Medea validator MUST indicate a unique error
+condition if a Medea graph file contains any schema _S_ such that _S_ is
+circularly-typed. 
+
+A Medea validator must indicate a unique error condition if an identifier in a
 type specifier line does not correspond to any schema defined in the current
 schema file.
 

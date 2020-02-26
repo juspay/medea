@@ -145,7 +145,6 @@ Each type specifier line MUST consist of the following, in this order:
   ``$array``, ``$number``, ``$string``; and
 3) A newline.
 
-
 **Semantics:** A JSON value is considered valid by this specifier if it is valid
 by _any_ of the identifiers provided for all of its type specifiers. For each
 individual identifier, the following validation rules apply:
@@ -175,11 +174,18 @@ typing of any schema within it. A Medea validator MUST indicate a unique error
 condition if a Medea graph file contains any schema _S_ such that _S_ is
 circularly-typed. 
 
-A Medea validator must indicate a unique error condition if an identifier in a
+A Medea validator MUST indicate a unique error condition if an identifier in a
 type specifier line does not correspond to any schema defined in the current
 schema file.
 
 **Default:** Any JSON value is considered valid by this specifier.
+
+### Isolated schemata
+
+We say that a schema _S_ in a Medea schema graph file is _isolated_ when it is
+not referred to by any specification in its Medea schema graph file. A Medea
+validator SHOULD indicate a unique error condition if it detects any isolated
+schemata.
 
 [d76]: http://www.unicode.org/versions/Unicode5.2.0/ch03.pdf#page=35
 [rfc2119]: https://tools.ietf.org/html/rfc2119

@@ -44,7 +44,12 @@ data LoaderError =
   -- | A schema was defined more than once.
   MultipleSchemaDefinition Text | -- ^ re-used name
   -- | A schema contains a type specifier aiming at an undefined schema.
-  MissingSchemaDefinition Text -- ^ name of the undefined schema
+  MissingSchemaDefinition Text   | -- ^ name of the undefined schema
+  -- | A schema with non-start reserved naming identifier.
+  SchemaNameReserved Text | -- name of the reserved identifier
+  -- | There is at least one isolated schema.
+  IsolatedSchemata
+
   deriving (Show)
 
 -- | Attempt to produce a schema from binary data in memory. 
@@ -95,6 +100,8 @@ analyze scm = case runExcept go of
   Left NoStartSchema -> throwError StartSchemaMissing
   Left (DanglingTypeReference ident) -> throwError . MissingSchemaDefinition . toText $ ident
   Left TypeRelationIsCyclic -> throwError SelfTypingSchema
+  Left (ReservedDefined ident) -> throwError . SchemaNameReserved . toText $ ident
+  Left UnreachableSchemata -> throwError IsolatedSchemata
   Right g -> pure g
   where go = do
           m <- intoMap scm

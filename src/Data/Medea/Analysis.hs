@@ -29,7 +29,8 @@ data AnalysisError =
   NoStartSchema |
   DanglingTypeReference Identifier |
   TypeRelationIsCyclic |
-  ReservedDefined Identifier
+  ReservedDefined Identifier |
+  UnreachableSchemata
 
 data TypeNode =
   PrimitiveNode JSONType | 
@@ -43,8 +44,12 @@ intoAcyclic = maybe (throwError TypeRelationIsCyclic) pure . toAcyclic . Cyclic.
 
 intoEdges :: (MonadError AnalysisError m) => 
   Map Identifier Schema.Specification -> Schema.Specification -> m [(TypeNode, TypeNode)]
-intoEdges m spec = evalStateT (go [] spec startIdentifier) S.empty
-  where go acc scm ident = do
+intoEdges m spec = evalStateT (go [] spec startIdentifier >>= checkUnusedSchema) S.empty
+  where checkUnusedSchema edges = do
+          schemas <- gets id
+          when (S.size schemas < M.size m) $ throwError UnreachableSchemata
+          pure edges
+        go acc scm ident = do
           let newNode = CustomNode ident
           alreadySeen <- gets (S.member newNode)
           if alreadySeen

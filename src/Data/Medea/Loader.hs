@@ -47,8 +47,8 @@ data LoaderError =
   MissingSchemaDefinition Text   | -- ^ name of the undefined schema
   -- | A schema with non-start reserved naming identifier.
   SchemaNameReserved Text | -- name of the reserved identifier
-  -- | 
-  UnusedSchemata
+  -- | There is at least one isolated schema.
+  IsolatedSchemata
 
   deriving (Show)
 
@@ -101,7 +101,7 @@ analyze scm = case runExcept go of
   Left (DanglingTypeReference ident) -> throwError . MissingSchemaDefinition . toText $ ident
   Left TypeRelationIsCyclic -> throwError SelfTypingSchema
   Left (ReservedDefined ident) -> throwError . SchemaNameReserved . toText $ ident
-  Left UnreachableSchemata -> throwError UnusedSchemata
+  Left UnreachableSchemata -> throwError IsolatedSchemata
   Right g -> pure g
   where go = do
           m <- intoMap scm

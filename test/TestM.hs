@@ -27,5 +27,5 @@ isSchemaError (Left SelfTypingSchema) = True
 isSchemaError (Left (MultipleSchemaDefinition _)) = True
 isSchemaError (Left (MissingSchemaDefinition _)) = True
 isSchemaError (Left (SchemaNameReserved _)) = True
-isSchemaError (Left UnusedSchemata) = True
+isSchemaError (Left IsolatedSchemata) = True
 isSchemaError _ = False

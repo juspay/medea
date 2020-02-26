@@ -50,8 +50,8 @@ intoEdges m spec = evalStateT (go [] spec startIdentifier) S.empty
           else do
             modify (S.insert newNode)
             case getReferences . Schema.types $ scm of
-              [] -> pure ((newNode, PrimitiveNode JSONNull) : acc)
-              ell@(_ : _) -> (acc <>) . concat <$> traverse (resolveLinks newNode) ell
+              [] -> pure ((newNode, AnyNode) : acc)
+              ell -> (acc <>) . concat <$> traverse (resolveLinks newNode) ell
         resolveLinks u t = case tryPrimType t of
           Nothing -> case M.lookup t m of
             Nothing -> throwError . DanglingTypeReference $ t

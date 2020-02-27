@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 module Data.Medea
   ( SchemaInformation (..),
@@ -24,9 +25,9 @@ import Algebra.Graph.Acyclic.AdjacencyMap (AdjacencyMap, postSet)
 import Control.Comonad.Cofree (Cofree (..), unfoldM)
 import Control.DeepSeq (NFData (..))
 import Control.Monad.Except (MonadError (..))
-import Control.Monad.Extra (firstJustM)
 import Control.Monad.IO.Class (MonadIO (..))
-import Control.Monad.Reader (MonadReader, asks, local, runReaderT)
+import Control.Monad.Reader (MonadReader, asks, runReaderT)
+import Control.Monad.State.Strict (MonadState (..), evalStateT, gets)
 import Data.Aeson (Value (..), decode)
 import qualified Data.ByteString.Lazy as BS
 import Data.ByteString.Lazy (ByteString)
@@ -45,10 +46,16 @@ import Data.Medea.Parser.Identifier (Identifier (..), startIdentifier)
 import Data.Medea.Schema (Schema (..))
 import Data.Medea.ValidJSON (ValidJSONF (..))
 import qualified Data.Set as S
+import Data.Set.NonEmpty
+  ( NESet,
+    deleteFindMin,
+    singleton,
+    pattern IsEmpty,
+    pattern IsNonEmpty,
+  )
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Lens.Micro.GHC (Lens', lens, set)
-import Lens.Micro.Mtl (view)
+import Lens.Micro.GHC (_1, set)
 import System.IO (Handle, hSetBinaryMode)
 
 -- | The schema-derived information attached to the current node.
@@ -120,7 +127,8 @@ validate (Schema tg) bs = case decode bs of
   Nothing -> throwError NotJSON
   Just v -> ValidatedJSON <$> go v
   where
-    go v = runReaderT (unfoldM checkTypes v) (envFromGraph tg)
+    go v = runReaderT (evalStateT (unfoldM checkTypes v) initialSet) tg
+    initialSet = singleton . CustomNode $ startIdentifier
 
 -- | Helper for construction of validated JSON from a JSON file.
 validateFromFile ::
@@ -147,25 +155,13 @@ validateFromHandle scm h = do
 
 -- Helpers
 
-data TypeCheckEnv
-  = TypeCheckEnv
-      { graph :: AdjacencyMap TypeNode,
-        _current :: TypeNode
-      }
-
-envFromGraph :: AdjacencyMap TypeNode -> TypeCheckEnv
-envFromGraph g = TypeCheckEnv g . CustomNode $ startIdentifier
-
-current :: Lens' TypeCheckEnv TypeNode
-current = lens _current (\tce c -> tce {_current = c})
-
 checkTypes ::
-  (MonadReader TypeCheckEnv m, MonadError ValidationError m) =>
+  (MonadReader (AdjacencyMap TypeNode) m, MonadState (NESet TypeNode) m, MonadError ValidationError m) =>
   Value ->
   m (SchemaInformation, ValidJSONF Value)
 checkTypes v = do
-  currentNode <- view current
-  case currentNode of
+  (current, rest) <- gets deleteFindMin
+  case current of
     AnyNode -> pure (AnySchema, AnythingF v)
     PrimitiveNode t -> case (t, v) of
       (JSONNull, Null) -> pure (NullSchema, NullF)
@@ -174,19 +170,19 @@ checkTypes v = do
       (JSONString, String s) -> pure (StringSchema, StringF s)
       -- We currently don't check array or object contents
       -- therefore, we punt to AnyNode before we carry on
-      (JSONArray, Array arr) -> local (set current AnyNode) (pure (ArraySchema, ArrayF arr))
-      (JSONObject, Object obj) -> local (set current AnyNode) (pure (ObjectSchema, ObjectF obj))
+      (JSONArray, Array arr) -> put anySet >> pure (ArraySchema, ArrayF arr)
+      (JSONObject, Object obj) -> put anySet >> pure (ObjectSchema, ObjectF obj)
       _ -> throwError . WrongType v $ t
     CustomNode ident -> do
-      neighbourhood <- asks (postSet currentNode . graph)
-      success <- firstJustM go . S.toList $ neighbourhood
-      case success of
-        Nothing -> throwError . NotOneOfOptions $ v
-        Just (_, more) -> pure (UserDefined . textify $ ident, more)
-  where
-    -- Not ideal, as this _should_ be handled by unfoldM
-    -- Maybe something else in my stack would fix it?
-    go t = catchError (Just <$> local (set current t) (checkTypes v)) (\_ -> pure Nothing)
+      neighbourhood <- asks (S.union rest . postSet current)
+      case neighbourhood of
+        IsEmpty -> throwError . NotOneOfOptions $ v
+        IsNonEmpty ne -> do
+          put ne
+          set _1 (UserDefined . textify $ ident) <$> checkTypes v
+
+anySet :: NESet TypeNode
+anySet = singleton AnyNode
 
 textify :: Identifier -> Text
 textify (Identifier t) = t

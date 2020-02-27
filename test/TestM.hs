@@ -6,7 +6,7 @@ module TestM where
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Except (MonadError, ExceptT, runExceptT)
 
-import Data.Medea.Loader (LoaderError(..))
+import Data.Medea (LoaderError(..))
 
 newtype TestM a = TestM (ExceptT LoaderError IO a)
   deriving (Functor, Applicative, Monad, MonadError LoaderError, MonadIO)

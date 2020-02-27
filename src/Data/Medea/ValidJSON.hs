@@ -1,17 +1,14 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Data.Medea.ValidJSON where
 
 import Data.Vector.Instances()
 import Data.Hashable (Hashable(..))
-import Data.Coerce (coerce)
 import Control.DeepSeq (NFData(..))
 import Data.Data (Data)
 import Data.Typeable (Typeable)
 import Data.Functor.Classes (Eq1(..), Show1(..))
-import Control.Comonad.Cofree (Cofree(..))
 import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Data.Aeson (Value(..))
@@ -27,6 +24,26 @@ data ValidJSONF a =
   ArrayF !(Vector a) |
   ObjectF !(HashMap Text a)
   deriving (Functor, Typeable, Data)
+
+instance Foldable ValidJSONF where
+  {-# INLINE foldMap #-}
+  foldMap _ (AnythingF _) = mempty
+  foldMap _ NullF = mempty
+  foldMap _ (BooleanF _) = mempty
+  foldMap _ (NumberF _) = mempty
+  foldMap _ (StringF _) = mempty
+  foldMap f (ArrayF v) = foldMap f v
+  foldMap f (ObjectF hm) = foldMap f hm
+
+instance Traversable ValidJSONF where
+  {-# INLINE traverse #-}
+  traverse _ (AnythingF v) = pure . AnythingF $ v
+  traverse _ NullF = pure NullF
+  traverse _ (BooleanF b) = pure . BooleanF $ b
+  traverse _ (NumberF n) = pure . NumberF $ n
+  traverse _ (StringF s) = pure . StringF $ s
+  traverse f (ArrayF v) = ArrayF <$> traverse f v
+  traverse f (ObjectF hm) = ObjectF <$> traverse f hm
 
 instance (NFData a) => NFData (ValidJSONF a) where
   {-# INLINE rnf #-}
@@ -68,39 +85,4 @@ instance (Hashable a) => Hashable (ValidJSONF a) where
   hashWithSalt salt (ArrayF v) = hashWithSalt salt v
   hashWithSalt salt (ObjectF hm) = hashWithSalt salt hm
 
-newtype ValidJSON = ValidJSON (Cofree ValidJSONF (Maybe Text))
-  deriving (Eq, Data, Show)
 
--- Can't coerce-erase the constructor fmap, sigh
-instance NFData ValidJSON where
-  {-# INLINE rnf #-}
-  rnf (ValidJSON (x :< f)) = rnf x `seq` (rnf . fmap ValidJSON $ f)
-
--- Nor here
-instance Hashable ValidJSON where
-  {-# INLINE hashWithSalt #-}
-  hashWithSalt salt (ValidJSON (x :< f)) = salt `hashWithSalt` x `hashWithSalt` fmap ValidJSON f
-
--- | Convert to an Aeson representation (throwing away all schema information).
-toValue :: ValidJSON -> Value
-toValue (ValidJSON (_ :< f)) = case f of
-  AnythingF v -> v
-  NullF -> Null
-  BooleanF b -> Bool b
-  NumberF n -> Number n
-  StringF s -> String s
-  ArrayF v -> Array . fmap (toValue . coerce) $ v
-  ObjectF hm -> Object . fmap (toValue . coerce) $ hm
-
--- | Get the name of the schema that this validated against.
-validAgainst :: ValidJSON -> Text
-validAgainst (ValidJSON (label :< f)) = case label of
-  Nothing -> case f of
-    AnythingF _ -> "$any"
-    NullF -> "$null"
-    BooleanF _ -> "$boolean"
-    NumberF _ -> "$number"
-    StringF _ -> "$string"
-    ArrayF _ -> "$array"
-    ObjectF _ -> "$object"
-  Just scm -> scm

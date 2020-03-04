@@ -1,28 +1,28 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveFunctor #-}
 
 module Data.Medea.ValidJSON where
 
-import Data.Vector.Instances()
-import Data.Hashable (Hashable(..))
-import Control.DeepSeq (NFData(..))
+import Control.DeepSeq (NFData (..))
+import Data.Aeson (Value (..))
 import Data.Data (Data)
-import Data.Typeable (Typeable)
-import Data.Functor.Classes (Eq1(..), Show1(..))
+import Data.Functor.Classes (Eq1 (..), Show1 (..))
+import Data.HashMap.Strict (HashMap)
+import Data.Hashable (Hashable (..))
 import Data.Scientific (Scientific)
 import Data.Text (Text)
-import Data.Aeson (Value(..))
+import Data.Typeable (Typeable)
 import Data.Vector (Vector)
-import Data.HashMap.Strict (HashMap)
+import Data.Vector.Instances ()
 
-data ValidJSONF a = 
-  AnythingF !Value |
-  NullF |
-  BooleanF {-# UNPACK #-} !Bool |
-  NumberF {-# UNPACK #-} !Scientific |
-  StringF !Text |
-  ArrayF !(Vector a) |
-  ObjectF !(HashMap Text a)
+data ValidJSONF a
+  = AnythingF !Value
+  | NullF
+  | BooleanF !Bool
+  | NumberF {-# UNPACK #-} !Scientific
+  | StringF !Text
+  | ArrayF !(Vector a)
+  | ObjectF !(HashMap Text a)
   deriving (Functor, Typeable, Data)
 
 instance Foldable ValidJSONF where
@@ -69,7 +69,7 @@ instance Eq1 ValidJSONF where
 instance Show1 ValidJSONF where
   liftShowsPrec _ _ prec (AnythingF v) = showsPrec prec v
   liftShowsPrec _ _ prec NullF = showsPrec prec Null
-  liftShowsPrec _ _ prec (BooleanF b) = showsPrec prec  b
+  liftShowsPrec _ _ prec (BooleanF b) = showsPrec prec b
   liftShowsPrec _ _ prec (NumberF n) = showsPrec prec n
   liftShowsPrec _ _ prec (StringF s) = showsPrec prec s
   liftShowsPrec f g prec (ArrayF v) = liftShowsPrec f g prec v
@@ -84,5 +84,3 @@ instance (Hashable a) => Hashable (ValidJSONF a) where
   hashWithSalt salt (StringF s) = hashWithSalt salt s
   hashWithSalt salt (ArrayF v) = hashWithSalt salt v
   hashWithSalt salt (ObjectF hm) = hashWithSalt salt hm
-
-

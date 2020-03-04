@@ -1,13 +1,12 @@
 module Main where
 
-import Data.List (sort)
-import Test.Hspec (Spec, hspec, describe, runIO, it, shouldSatisfy)
-import System.FilePath (isExtensionOf, (</>))
 import Data.Foldable (traverse_)
+import Data.List (sort)
+import Data.Medea (loadSchemaFromFile)
 import System.Directory (listDirectory)
-
-import TestM (runTestM, isParseError)
-import Data.Medea.Loader (loadSchemaFromFile)
+import System.FilePath ((</>), isExtensionOf)
+import Test.Hspec (Spec, describe, hspec, it, runIO, shouldSatisfy)
+import TestM (isParseError, runTestM)
 
 main :: IO ()
 main = do
@@ -21,5 +20,3 @@ makeParseTest :: FilePath -> Spec
 makeParseTest fp = do
   result <- runIO . runTestM . loadSchemaFromFile $ fp
   it ("Shouldn't parse: " ++ fp) (result `shouldSatisfy` isParseError)
-
-

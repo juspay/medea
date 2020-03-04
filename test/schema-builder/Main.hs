@@ -1,14 +1,20 @@
 module Main where
 
-import Data.List (sort)
-import Test.Hspec (Spec, 
-                   hspec, describe, runIO, it, shouldSatisfy, shouldNotSatisfy)
-import System.FilePath (isExtensionOf, (</>))
-import System.Directory (listDirectory)
 import Data.Foldable (traverse_)
-
-import TestM (runTestM, isParseError, isSchemaError)
-import Data.Medea.Loader (loadSchemaFromFile)
+import Data.List (sort)
+import Data.Medea (loadSchemaFromFile)
+import System.Directory (listDirectory)
+import System.FilePath ((</>), isExtensionOf)
+import Test.Hspec
+  ( Spec,
+    describe,
+    hspec,
+    it,
+    runIO,
+    shouldNotSatisfy,
+    shouldSatisfy,
+  )
+import TestM (isParseError, isSchemaError, runTestM)
 
 main :: IO ()
 main = do

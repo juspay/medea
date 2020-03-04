@@ -1,0 +1,10 @@
+$schema $start
+    $type
+        foo
+
+$schema foo
+    $type
+        $array
+    $length
+        $minimum a
+        $maximum a

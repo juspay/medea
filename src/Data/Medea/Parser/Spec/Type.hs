@@ -27,7 +27,7 @@ parseSpecification = do
   replicateM_ 4 $ char ' '
   _ <- parseTypeHeader
   _ <- eol
-  Specification . V.fromList <$> some parseTypeSpec
+  Specification . V.fromList <$> some (try parseTypeSpec)
   where parseTypeSpec = do
           replicateM_ 8 $ char ' '
           ident <- parseIdentifier

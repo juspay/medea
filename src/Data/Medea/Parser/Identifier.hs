@@ -45,15 +45,23 @@ parseReserved = do
 
 parseSchemaHeader :: (MonadParsec ParseError Text m) => 
   m ReservedIdentifier
-parseSchemaHeader = do
-  ident <- chunk "$schema"
-  pure . ReservedIdentifier $ ident
+parseSchemaHeader = parseReservedChunk "schema"
 
 parseTypeHeader :: (MonadParsec ParseError Text m) => 
   m ReservedIdentifier
-parseTypeHeader = do
-  ident <- chunk "$type"
-  pure . ReservedIdentifier $ ident
+parseTypeHeader = parseReservedChunk "type"
+
+parseLengthHeader :: (MonadParsec ParseError Text m) => 
+  m ReservedIdentifier
+parseLengthHeader = parseReservedChunk "length"
+
+parseMinimumHeader :: (MonadParsec ParseError Text m) => 
+  m ReservedIdentifier
+parseMinimumHeader = parseReservedChunk "minimum"
+
+parseMaximumHeader :: (MonadParsec ParseError Text m) => 
+  m ReservedIdentifier
+parseMaximumHeader = parseReservedChunk "maximum"
 
 tryReserved :: Identifier -> Maybe ReservedIdentifier
 tryReserved (Identifier ident) = 
@@ -110,3 +118,10 @@ checkedConstruct f t =
   if (> 32) . BS.length . encodeUtf8 $ t
   then customFailure . IdentifierTooLong $ t
   else pure . f $ t
+
+{-# INLINE parseReservedChunk #-}
+parseReservedChunk :: (MonadParsec ParseError Text m) =>
+  Text -> m ReservedIdentifier
+parseReservedChunk identName = do
+  ident <- chunk $ "$" <> identName
+  pure . ReservedIdentifier $ ident

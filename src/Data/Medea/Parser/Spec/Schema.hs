@@ -2,6 +2,9 @@
 
 module Data.Medea.Parser.Spec.Schema where 
 
+import Control.Applicative.Permutations (runPermutation,
+                                         toPermutation,
+                                         toPermutationWithDefault)
 import Data.Text (Text)
 import Text.Megaparsec (MonadParsec(..), (<|>))
 import Text.Megaparsec.Char (eol, char)
@@ -11,11 +14,13 @@ import Data.Medea.Parser.Identifier (Identifier,
                                      parseIdentifier, parseSchemaHeader)
 
 import qualified Data.Vector as V
+import qualified Data.Medea.Parser.Spec.Array as Array
 import qualified Data.Medea.Parser.Spec.Type as Type
 
 data Specification = Specification {
   name :: !Identifier,
-  types :: !Type.Specification
+  types :: !Type.Specification,
+  arrayDim :: !Array.Specification
 }
   deriving (Eq)
 
@@ -26,6 +31,6 @@ parseSpecification = do
   _ <- char ' '
   schemaName <- parseIdentifier
   _ <- eol
-  ts <- Type.parseSpecification <|> pure (Type.Specification V.empty)
-  pure . Specification schemaName $ ts
-
+  runPermutation $ Specification schemaName
+    <$> toPermutationWithDefault (Type.Specification V.empty) (try Type.parseSpecification)
+    <*> toPermutationWithDefault Array.defaultSpec (try Array.parseSpecification)

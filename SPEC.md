@@ -188,9 +188,6 @@ the value of the Medea natural number in a minimum length specification is
 greater than the value of the Medea natural number in a maximum length
 specification in the same array dimensions specification.
 
-A Medea validator SHOULD indicate a unique error condition if the value of the
-Medea natural number in a minimum length specification is 0. 
-
 **Default:** An array may have any length (no minimum or maximum).
 
 #### Object meta-property specification

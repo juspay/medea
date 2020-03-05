@@ -13,7 +13,7 @@ import qualified Data.Vector as V
 
 import Data.Medea.Parser.Identifier (Identifier, 
                                      parseIdentifier, parseTypeHeader)
-import Data.Medea.Parser.Error (ParseError)
+import Data.Medea.Parser.Types (MedeaParser, ParseError)
 
 newtype Specification = Specification (Vector Identifier)
   deriving (Eq)
@@ -21,8 +21,7 @@ newtype Specification = Specification (Vector Identifier)
 getReferences :: Specification -> [Identifier]
 getReferences (Specification v) = V.toList v
 
-parseSpecification :: (MonadParsec ParseError Text m) => 
-  m Specification
+parseSpecification :: MedeaParser Specification
 parseSpecification = do
   replicateM_ 4 $ char ' '
   _ <- parseTypeHeader

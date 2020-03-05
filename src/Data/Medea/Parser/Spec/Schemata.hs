@@ -9,14 +9,13 @@ import Data.Vector (Vector)
 
 import qualified Data.Vector as V
 
-import Data.Medea.Parser.Error (ParseError)
+import Data.Medea.Parser.Types (MedeaParser, ParseError)
 
 import qualified Data.Medea.Parser.Spec.Schema as Schema
 
 newtype Specification = Specification (Vector Schema.Specification)
 
-parseSpecification :: (MonadParsec ParseError Text m) => 
-  m Specification
+parseSpecification :: MedeaParser Specification
 parseSpecification = do
   specs <- Schema.parseSpecification `sepBy1` eol
   eof

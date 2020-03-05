@@ -16,7 +16,7 @@ import qualified Data.Vector as V
 
 import Data.Medea.Parser.Identifier (Identifier,
                                      parseIdentifier, parseLengthHeader, parseMinimumHeader, parseMaximumHeader)
-import Data.Medea.Parser.Error (ParseError)
+import Data.Medea.Parser.Types (MedeaParser, ParseError)
 
 data Specification = Specification {
   minLength :: Maybe Identifier,
@@ -28,8 +28,7 @@ defaultSpec = Specification Nothing Nothing
 
 combineSpec (Specification a1 b1) (Specification a2 b2) = Specification (a1 <|> a2) (b1 <|> b2)
 
-parseSpecification :: (MonadParsec ParseError Text m) =>
-  m Specification
+parseSpecification :: MedeaParser Specification
 parseSpecification = replicateM_ 4 (char ' ')
   *> parseLengthHeader
   *> eol

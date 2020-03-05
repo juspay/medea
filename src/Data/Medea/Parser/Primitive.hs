@@ -4,19 +4,23 @@
 module Data.Medea.Parser.Primitive where
 
 import Prelude hiding (head)
+import Control.Monad (when)
+import Data.Char (isDigit, isSeparator, isControl)
 import Data.Maybe (isJust)
-import Data.Text (Text, cons, head)
+import Data.Text (Text, cons, head, unpack, pack)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Functor (($>))
-import Data.Char (isSeparator, isControl)
-import Text.Megaparsec (MonadParsec(..), 
-                        chunk, customFailure, single, (<|>))
+import Text.Megaparsec (chunk, customFailure, single, some, manyTill,
+                        takeWhile1P, (<|>))
+import Text.Megaparsec.Char (char)
+import Text.Megaparsec.Char.Lexer (charLiteral)
 
 import qualified Data.ByteString as BS
 
 import Data.Medea.JSONType (JSONType(..))
 import Data.Medea.Parser.Types (MedeaParser, ParseError(..))
 
+-- Identifier
 newtype Identifier = Identifier { toText :: Text }
   deriving (Eq, Ord, Show)
 
@@ -99,6 +103,24 @@ isReserved = isJust . tryReserved
 
 isStartIdent :: Identifier -> Bool
 isStartIdent = (== Identifier "$start")
+
+-- Natural Number
+newtype Natural = Natural { toInteger :: Integer }
+  deriving (Eq, Ord, Show)
+
+parseNatural :: MedeaParser Natural
+parseNatural = do
+  digits <- takeWhile1P (Just "digits") isDigit
+  when (head digits == '0') $
+    customFailure . LeadingZero $ digits
+  pure . Natural . read . unpack $ digits
+
+-- String
+newtype MedeaString = MedeaString { unwrap :: Text }
+parseString :: MedeaParser MedeaString
+parseString = do
+  string <- char '"' *> manyTill charLiteral (char '"')
+  pure . MedeaString . pack $ string
 
 -- Helpers
 checkedConstruct :: 

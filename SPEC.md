@@ -143,15 +143,15 @@ Each of the subsequent entries has the following format:
 * **Default:** Describes the validation behaviour of a schema missing this
   specification.
 
-#### Array dimensions specification
+#### Array specification
 
-**Description:** An _array dimension specification_ describes the minimum and
+**Description:** An _array specification_ describes the minimum and
 maximum length of an array. 
 
 **Preconditions:** The schema must have a type specifier by which a JSON array
 would be considered valid.
 
-**Syntax:** An array dimensions specification MUST consist of the following, in
+**Syntax:** An array specification MUST consist of the following, in
 this order:
 
 1) Four space symbols;

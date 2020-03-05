@@ -4,7 +4,7 @@
 module Data.Medea.Parser.Primitive where
 
 import Prelude hiding (head)
-import Control.Monad (when)
+import Control.Monad (when, replicateM_)
 import Data.Char (isDigit, isSeparator, isControl)
 import Data.Maybe (isJust)
 import Data.Text (Text, cons, head, unpack, pack)
@@ -12,7 +12,7 @@ import Data.Text.Encoding (encodeUtf8)
 import Data.Functor (($>))
 import Text.Megaparsec (chunk, customFailure, single, some, manyTill,
                         takeWhile1P, (<|>))
-import Text.Megaparsec.Char (char)
+import Text.Megaparsec.Char (char, eol)
 import Text.Megaparsec.Char.Lexer (charLiteral)
 
 import qualified Data.ByteString as BS
@@ -135,6 +135,10 @@ parseReservedChunk :: Text -> MedeaParser ReservedIdentifier
 parseReservedChunk identName = do
   ident <- chunk $ "$" <> identName
   pure . ReservedIdentifier $ ident
+
+{-# INLINE parseLine #-}
+parseLine :: Int -> MedeaParser a -> MedeaParser a
+parseLine spaces p = replicateM_ spaces (char ' ') *> p <* eol
 
 isSeparatorOrControl :: Char -> Bool
 isSeparatorOrControl c = isSeparator c || isControl c

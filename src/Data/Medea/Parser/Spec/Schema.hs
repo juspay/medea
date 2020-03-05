@@ -11,7 +11,7 @@ import Text.Megaparsec.Char (eol, char)
 
 import Data.Medea.Parser.Types (MedeaParser, ParseError)
 import Data.Medea.Parser.Primitive (Identifier, 
-                                     parseIdentifier, parseSchemaHeader)
+                                     parseIdentifier, parseSchemaHeader, parseLine)
 
 import qualified Data.Vector as V
 import qualified Data.Medea.Parser.Spec.Array as Array
@@ -26,10 +26,12 @@ data Specification = Specification {
 
 parseSpecification :: MedeaParser Specification
 parseSpecification = do
-  _ <- parseSchemaHeader
-  _ <- char ' '
-  schemaName <- parseIdentifier
-  _ <- eol
+  schemaName <- parseSchemaLine
   runPermutation $ Specification schemaName
     <$> toPermutationWithDefault (Type.Specification V.empty) (try Type.parseSpecification)
     <*> toPermutationWithDefault Array.defaultSpec (try Array.parseSpecification)
+    where
+      parseSchemaLine = parseLine 0 $
+        parseSchemaHeader
+        *> char ' '
+        *> parseIdentifier

@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Data.Medea.Parser.Spec.Type where
 
@@ -12,7 +11,7 @@ import Data.Vector (Vector)
 import qualified Data.Vector as V
 
 import Data.Medea.Parser.Primitive (Identifier, 
-                                     parseIdentifier, parseTypeHeader)
+                                     parseIdentifier, parseTypeHeader, parseLine)
 import Data.Medea.Parser.Types (MedeaParser, ParseError)
 
 newtype Specification = Specification (Vector Identifier)
@@ -23,13 +22,6 @@ getReferences (Specification v) = V.toList v
 
 parseSpecification :: MedeaParser Specification
 parseSpecification = do
-  replicateM_ 4 $ char ' '
-  _ <- parseTypeHeader
-  _ <- eol
-  Specification . V.fromList <$> some (try parseTypeSpec)
-  where parseTypeSpec = do
-          replicateM_ 8 $ char ' '
-          ident <- parseIdentifier
-          _ <- eol
-          pure ident
-  
+  parseLine 4 parseTypeHeader
+  types <- some . try $ parseLine 8 parseIdentifier
+  pure . Specification . V.fromList $ types

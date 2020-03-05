@@ -121,10 +121,10 @@ $schema $start
 
 ### Specifications
 
-Any schema can include any of the following specifications at most once. Some
-specifications are conditional on others (noted in their descriptions). A Medea
-validator MUST indicate a unique error condition if a specification is provided
-for a schema where its conditions are not met.
+Any schema can include any of the following specifications at most once, in any
+order. Some specifications are conditional on others (noted in their 
+descriptions). A Medea validator MUST indicate a unique error condition if a 
+specification is provided for a schema where its conditions are not met.
 
 Each of the subsequent entries has the following format:
 

@@ -29,7 +29,7 @@ library
                         Data.Medea.JSONType,
                         Data.Medea.ValidJSON,
                         Data.Medea.Analysis,
-                        Data.Medea.Parser.Error,
+                        Data.Medea.Parser.Types,
                         Data.Medea.Parser.Identifier,
                         Data.Medea.Parser.Spec.Array,
                         Data.Medea.Parser.Spec.Schema,

@@ -12,7 +12,7 @@ import Control.Monad.State.Strict (evalStateT, gets, modify)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import Data.Medea.JSONType (JSONType (..))
-import Data.Medea.Parser.Identifier
+import Data.Medea.Parser.Primitive
   ( Identifier,
     PrimTypeIdentifier (..),
     isReserved,

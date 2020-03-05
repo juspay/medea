@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Data.Medea.Parser.Identifier where 
+module Data.Medea.Parser.Primitive where
 
 import Prelude hiding (head)
 import Data.Maybe (isJust)
@@ -15,16 +15,12 @@ import Text.Megaparsec (MonadParsec(..),
 import qualified Data.ByteString as BS
 
 import Data.Medea.JSONType (JSONType(..))
-import Data.Medea.Parser.Error (ParseError(..))
+import Data.Medea.Parser.Types (MedeaParser, ParseError(..))
 
 newtype Identifier = Identifier { toText :: Text }
   deriving (Eq, Ord, Show)
 
-isSeparatorOrControl :: Char -> Bool
-isSeparatorOrControl c = isSeparator c || isControl c
-
-parseIdentifier :: (MonadParsec ParseError Text m) => 
-  m Identifier
+parseIdentifier :: MedeaParser Identifier
 parseIdentifier = do
   ident <- takeWhile1P (Just "Non-separator") (not . isSeparatorOrControl)
   checkedConstruct Identifier ident
@@ -35,36 +31,30 @@ startIdentifier = Identifier "$start"
 newtype ReservedIdentifier = ReservedIdentifier Text
   deriving (Eq)
 
-parseReserved :: (MonadParsec ParseError Text m) => 
-  m ReservedIdentifier
+parseReserved :: MedeaParser ReservedIdentifier
 parseReserved = do
   lead <- single '$'
   rest <- takeWhile1P Nothing (not . isSeparatorOrControl)
   let ident = cons lead rest
   checkedConstruct ReservedIdentifier ident
 
-parseSchemaHeader :: (MonadParsec ParseError Text m) => 
-  m ReservedIdentifier
+parseSchemaHeader :: MedeaParser ReservedIdentifier
 parseSchemaHeader = parseReservedChunk "schema"
 
-parseTypeHeader :: (MonadParsec ParseError Text m) => 
-  m ReservedIdentifier
+parseTypeHeader :: MedeaParser ReservedIdentifier
 parseTypeHeader = parseReservedChunk "type"
 
-parseLengthHeader :: (MonadParsec ParseError Text m) => 
-  m ReservedIdentifier
+parseLengthHeader :: MedeaParser ReservedIdentifier
 parseLengthHeader = parseReservedChunk "length"
 
-parseMinimumHeader :: (MonadParsec ParseError Text m) => 
-  m ReservedIdentifier
+parseMinimumHeader :: MedeaParser ReservedIdentifier
 parseMinimumHeader = parseReservedChunk "minimum"
 
-parseMaximumHeader :: (MonadParsec ParseError Text m) => 
-  m ReservedIdentifier
+parseMaximumHeader :: MedeaParser ReservedIdentifier
 parseMaximumHeader = parseReservedChunk "maximum"
 
 tryReserved :: Identifier -> Maybe ReservedIdentifier
-tryReserved (Identifier ident) = 
+tryReserved (Identifier ident) =
   if head ident == '$'
   then Just (ReservedIdentifier ident)
   else Nothing
@@ -75,10 +65,9 @@ forgetReserved (ReservedIdentifier ident) = Identifier ident
 newtype PrimTypeIdentifier = PrimTypeIdentifier { typeOf :: JSONType }
   deriving (Eq)
 
-parsePrimType :: (MonadParsec ParseError Text m) => 
-  m PrimTypeIdentifier
-parsePrimType = PrimTypeIdentifier <$> 
-                (chunk "$null" $> JSONNull <|> 
+parsePrimType :: MedeaParser PrimTypeIdentifier
+parsePrimType = PrimTypeIdentifier <$>
+                (chunk "$null" $> JSONNull <|>
                  chunk "$boolean" $> JSONBoolean <|>
                  chunk "$object" $> JSONObject <|>
                  chunk "$array" $> JSONArray <|>
@@ -86,7 +75,7 @@ parsePrimType = PrimTypeIdentifier <$>
                  chunk "$string" $> JSONString)
 
 tryPrimType :: Identifier -> Maybe PrimTypeIdentifier
-tryPrimType (Identifier ident) = PrimTypeIdentifier <$> 
+tryPrimType (Identifier ident) = PrimTypeIdentifier <$>
   (case ident of
     "$null" -> Just JSONNull
     "$boolean" -> Just JSONBoolean
@@ -112,16 +101,18 @@ isStartIdent :: Identifier -> Bool
 isStartIdent = (== Identifier "$start")
 
 -- Helpers
-checkedConstruct :: (MonadParsec ParseError Text m) => 
-  (Text -> a) -> Text -> m a
-checkedConstruct f t = 
+checkedConstruct :: 
+  (Text -> a) -> Text -> MedeaParser a
+checkedConstruct f t =
   if (> 32) . BS.length . encodeUtf8 $ t
   then customFailure . IdentifierTooLong $ t
   else pure . f $ t
 
 {-# INLINE parseReservedChunk #-}
-parseReservedChunk :: (MonadParsec ParseError Text m) =>
-  Text -> m ReservedIdentifier
+parseReservedChunk :: Text -> MedeaParser ReservedIdentifier
 parseReservedChunk identName = do
   ident <- chunk $ "$" <> identName
   pure . ReservedIdentifier $ ident
+
+isSeparatorOrControl :: Char -> Bool
+isSeparatorOrControl c = isSeparator c || isControl c

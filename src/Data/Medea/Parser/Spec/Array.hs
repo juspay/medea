@@ -14,7 +14,7 @@ import Data.Vector (Vector)
 
 import qualified Data.Vector as V
 
-import Data.Medea.Parser.Identifier (Identifier,
+import Data.Medea.Parser.Primitive (Identifier,
                                      parseIdentifier, parseLengthHeader, parseMinimumHeader, parseMaximumHeader)
 import Data.Medea.Parser.Types (MedeaParser, ParseError)
 

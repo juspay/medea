@@ -42,7 +42,7 @@ import Data.Medea.Loader
     loadSchemaFromFile,
     loadSchemaFromHandle,
   )
-import Data.Medea.Parser.Identifier (Identifier (..), startIdentifier)
+import Data.Medea.Parser.Primitive (Identifier (..), startIdentifier)
 import Data.Medea.Schema (Schema (..))
 import Data.Medea.ValidJSON (ValidJSONF (..))
 import qualified Data.Set as S

@@ -10,7 +10,7 @@ import Text.Megaparsec (MonadParsec(..), (<|>))
 import Text.Megaparsec.Char (eol, char)
 
 import Data.Medea.Parser.Types (MedeaParser, ParseError)
-import Data.Medea.Parser.Identifier (Identifier, 
+import Data.Medea.Parser.Primitive (Identifier, 
                                      parseIdentifier, parseSchemaHeader)
 
 import qualified Data.Vector as V

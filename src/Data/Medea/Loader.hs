@@ -15,7 +15,7 @@ import Data.Medea.Analysis
     intoEdges,
     intoMap,
   )
-import Data.Medea.Parser.Identifier (toText)
+import Data.Medea.Parser.Primitive (toText)
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
 import Data.Medea.Schema (Schema (..))
 import Data.Text (Text)

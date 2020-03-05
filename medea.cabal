@@ -30,7 +30,7 @@ library
                         Data.Medea.ValidJSON,
                         Data.Medea.Analysis,
                         Data.Medea.Parser.Types,
-                        Data.Medea.Parser.Identifier,
+                        Data.Medea.Parser.Primitive,
                         Data.Medea.Parser.Spec.Array,
                         Data.Medea.Parser.Spec.Schema,
                         Data.Medea.Parser.Spec.Schemata,

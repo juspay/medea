@@ -8,6 +8,7 @@ import           Control.Applicative.Permutations (Permutation, runPermutation,
                                                    toPermutation,
                                                    toPermutationWithDefault)
 import           Control.Monad                    (replicateM_)
+import           Data.Default                     (Default(..))
 import           Data.Functor                     (($>))
 import           Data.Medea.Parser.Primitive      (Identifier, MedeaString,
                                                    parseIdentifier, parseLine,
@@ -27,7 +28,8 @@ data Specification = Specification {
   additionalAllowed :: Bool
 } deriving (Eq)
 
-defaultSpec = Specification V.empty False
+instance Default Specification where
+  def = Specification V.empty False
 
 parseSpecification :: MedeaParser Specification
 parseSpecification = do

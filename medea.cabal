@@ -55,7 +55,8 @@ library
                         vector-instances >= 3.4 && < 3.5,
                         microlens-ghc >= 0.4.12 && < 0.5.0,
                         nonempty-containers >= 0.3.3.0 && < 0.4.0.0,
-                        parser-combinators >= 1.1.0 && < 1.2.1
+                        parser-combinators >= 1.1.0 && < 1.2.1,
+                        data-default >= 0.7.1.1 && < 0.7.1.2
   ghc-options:          -Wall -Wcompat -Wincomplete-record-updates
                         -Wincomplete-uni-patterns -Wredundant-constraints
   hs-source-dirs:       src

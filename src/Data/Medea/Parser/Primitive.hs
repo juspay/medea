@@ -8,6 +8,7 @@ import Control.Applicative (Alternative)
 import Control.Applicative.Permutations (Permutation, toPermutationWithDefault)
 import Control.Monad (when, replicateM_)
 import Data.Char (isDigit, isSeparator, isControl)
+import Data.Default (Default(..))
 import Data.Maybe (isJust)
 import Data.Text (Text, cons, head, unpack, pack)
 import Data.Text.Encoding (encodeUtf8)
@@ -43,21 +44,6 @@ parseReserved = do
   rest <- takeWhile1P Nothing (not . isSeparatorOrControl)
   let ident = cons lead rest
   checkedConstruct ReservedIdentifier ident
-
-parseSchemaHeader :: MedeaParser ReservedIdentifier
-parseSchemaHeader = parseReservedChunk "schema"
-
-parseTypeHeader :: MedeaParser ReservedIdentifier
-parseTypeHeader = parseReservedChunk "type"
-
-parseLengthHeader :: MedeaParser ReservedIdentifier
-parseLengthHeader = parseReservedChunk "length"
-
-parseMinimumHeader :: MedeaParser ReservedIdentifier
-parseMinimumHeader = parseReservedChunk "minimum"
-
-parseMaximumHeader :: MedeaParser ReservedIdentifier
-parseMaximumHeader = parseReservedChunk "maximum"
 
 tryReserved :: Identifier -> Maybe ReservedIdentifier
 tryReserved (Identifier ident) =
@@ -120,6 +106,7 @@ parseNatural = do
 -- String
 newtype MedeaString = MedeaString { unwrap :: Text }
   deriving (Eq, Show)
+
 parseString :: MedeaParser MedeaString
 parseString = do
   string <- char '"' *> manyTill charLiteral (char '"')
@@ -137,7 +124,7 @@ checkedConstruct f t =
 parseReservedChunk :: Text -> MedeaParser ReservedIdentifier
 parseReservedChunk identName = do
   ident <- chunk $ "$" <> identName
-  pure . ReservedIdentifier $ ident
+  checkedConstruct ReservedIdentifier ident
 
 {-# INLINE parseLine #-}
 parseLine :: Int -> MedeaParser a -> MedeaParser a
@@ -148,3 +135,6 @@ isSeparatorOrControl c = isSeparator c || isControl c
 
 permute :: (Alternative m) => Permutation m (a -> b) -> (a, m a) -> Permutation m b
 permute permF = (<*>) permF . uncurry toPermutationWithDefault
+
+parseKeyVal :: Text -> MedeaParser a -> MedeaParser a
+parseKeyVal key = (parseReservedChunk key *> char ' ' *>)

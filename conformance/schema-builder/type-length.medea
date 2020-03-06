@@ -1,10 +1,16 @@
 $schema $start
     $type
         foo
+    $length
+        $minimum 1
 
 $schema foo
     $type
         $array
     $length
-        $minimum a
-        $maximum a
+        $minimum 2
+        $maximum 3
+
+$schema bar
+    $length
+        $maximum 3

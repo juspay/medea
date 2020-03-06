@@ -31,6 +31,10 @@ data LoaderError
     NotUtf8
   | -- | An identifier was longer than allowed.
     IdentifierTooLong
+  | -- | A natural number had a leading 0.
+    LeadingZeroNatural
+  | -- | A length specification had no minimum/maximum specification.
+    EmptyLengthSpec
   | -- | Parsing failed.
     ParserError (ParseError Text Void)
   | -- | No schema labelled $start was provided.
@@ -96,6 +100,7 @@ fromUtf8 sourceName utf8 =
   case parse Schemata.parseSpecification sourceName utf8 of
     Left err -> case NE.head . bundleErrors $ err of
       TrivialError o u e -> throwError . ParserError . TrivialError o u $ e
+      -- TODO: Handle all kinds of ParseError
       FancyError {} -> throwError IdentifierTooLong
     Right scm -> pure scm
 

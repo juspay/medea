@@ -15,12 +15,14 @@ import Data.Medea.Parser.Primitive (Identifier,
 
 import qualified Data.Vector as V
 import qualified Data.Medea.Parser.Spec.Array as Array
+import qualified Data.Medea.Parser.Spec.Object as Object
 import qualified Data.Medea.Parser.Spec.Type as Type
 
 data Specification = Specification {
   name :: !Identifier,
   types :: !Type.Specification,
-  arrayDim :: !Array.Specification
+  array :: !Array.Specification,
+  object :: !Object.Specification
 }
   deriving (Eq)
 
@@ -30,6 +32,7 @@ parseSpecification = do
   runPermutation $ Specification schemaName
     <$> toPermutationWithDefault (Type.Specification V.empty) (try Type.parseSpecification)
     <*> toPermutationWithDefault Array.defaultSpec (try Array.parseSpecification)
+    <*> toPermutationWithDefault Object.defaultSpec (try Object.parseSpecification)
     where
       parseSchemaLine = parseLine 0 $
         parseSchemaHeader

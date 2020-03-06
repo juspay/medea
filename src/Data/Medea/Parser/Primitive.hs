@@ -4,6 +4,8 @@
 module Data.Medea.Parser.Primitive where
 
 import Prelude hiding (head)
+import Control.Applicative (Alternative)
+import Control.Applicative.Permutations (Permutation, toPermutationWithDefault)
 import Control.Monad (when, replicateM_)
 import Data.Char (isDigit, isSeparator, isControl)
 import Data.Maybe (isJust)
@@ -117,6 +119,7 @@ parseNatural = do
 
 -- String
 newtype MedeaString = MedeaString { unwrap :: Text }
+  deriving (Eq, Show)
 parseString :: MedeaParser MedeaString
 parseString = do
   string <- char '"' *> manyTill charLiteral (char '"')
@@ -142,3 +145,6 @@ parseLine spaces p = replicateM_ spaces (char ' ') *> p <* eol
 
 isSeparatorOrControl :: Char -> Bool
 isSeparatorOrControl c = isSeparator c || isControl c
+
+permute :: (Alternative m) => Permutation m (a -> b) -> (a, m a) -> Permutation m b
+permute permF = (<*>) permF . uncurry toPermutationWithDefault

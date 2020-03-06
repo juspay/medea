@@ -35,6 +35,8 @@ library
                         Data.Medea.Parser.Spec.Schema,
                         Data.Medea.Parser.Spec.Schemata,
                         Data.Medea.Parser.Spec.Type,
+                        Data.Medea.Parser.Spec.Property,
+                        Data.Medea.Parser.Spec.Object
                         Data.Medea.Schema
   build-depends:        base >= 4.11.1 && < 5,
                         aeson >= 1.4.6.0 && < 1.5.0.0,

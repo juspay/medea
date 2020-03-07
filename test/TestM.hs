@@ -28,4 +28,6 @@ isSchemaError (Left (MultipleSchemaDefinition _)) = True
 isSchemaError (Left (MissingSchemaDefinition _)) = True
 isSchemaError (Left (SchemaNameReserved _)) = True
 isSchemaError (Left IsolatedSchemata) = True
+isSchemaError (Left (MissingPropSchemaDefinition _)) = True
+isSchemaError (Left (MinimumLengthGreaterThanMaximum _)) = True
 isSchemaError _ = False

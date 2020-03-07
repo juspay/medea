@@ -28,6 +28,9 @@ data Specification = Specification {
   additionalAllowed :: Bool
 } deriving (Eq)
 
+getPropReferences :: Specification -> [Maybe Identifier]
+getPropReferences = V.toList . fmap Property.propSchema . properties
+
 instance Default Specification where
   def = Specification V.empty False
 

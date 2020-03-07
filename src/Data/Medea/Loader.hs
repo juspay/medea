@@ -44,11 +44,15 @@ data LoaderError
   | -- | A schema was defined more than once.
     MultipleSchemaDefinition Text
   | -- | name of the undefined schema
-    -- | A schema with non-start reserved naming identifier.
     MissingSchemaDefinition Text
-  | SchemaNameReserved Text -- name of the reserved identifier
+  | -- | A schema with non-start reserved naming identifier.
+    SchemaNameReserved Text -- name of the reserved identifier
   | -- | There is at least one isolated schema.
     IsolatedSchemata
+  | -- | Value for `$object-schema` is an undefined schema.
+    MissingPropSchemaDefinition Text
+  | -- | Minimum length specification was more than maximum.
+    MinimumLengthGreaterThanMaximum Text -- name of the schema
   deriving (Show)
 
 -- | Attempt to produce a schema from binary data in memory.
@@ -59,7 +63,7 @@ buildSchema ::
 buildSchema bs = do
   utf8 <- parseUtf8 bs
   spec <- fromUtf8 ":memory:" utf8
-  Schema <$> analyze spec
+  analyze spec
 
 -- | Parse and process a Medea schema graph file.
 loadSchemaFromFile ::
@@ -70,7 +74,7 @@ loadSchemaFromFile fp = do
   contents <- liftIO . readFile $ fp
   utf8 <- parseUtf8 contents
   spec <- fromUtf8 fp utf8
-  Schema <$> analyze spec
+  analyze spec
 
 -- | Load data corresponding to a Medea schema graph file from a 'Handle'.
 loadSchemaFromHandle ::
@@ -81,7 +85,7 @@ loadSchemaFromHandle h = do
   contents <- liftIO . hGetContents $ h
   utf8 <- parseUtf8 contents
   spec <- fromUtf8 (show h) utf8
-  Schema <$> analyze spec
+  analyze spec
 
 -- Helper
 
@@ -107,18 +111,22 @@ fromUtf8 sourceName utf8 =
 analyze ::
   (MonadError LoaderError m) =>
   Schemata.Specification ->
-  m (AdjacencyMap TypeNode)
+  m Schema
 analyze scm = case runExcept go of
-  Left (DuplicateSchemaName ident) -> throwError . MultipleSchemaDefinition . toText $ ident
+  Left (DuplicateSchemaName ident) -> errWithIdent MultipleSchemaDefinition ident
   Left NoStartSchema -> throwError StartSchemaMissing
-  Left (DanglingTypeReference ident) -> throwError . MissingSchemaDefinition . toText $ ident
+  Left (DanglingTypeReference ident) -> errWithIdent MissingSchemaDefinition ident
   Left TypeRelationIsCyclic -> throwError SelfTypingSchema
-  Left (ReservedDefined ident) -> throwError . SchemaNameReserved . toText $ ident
+  Left (ReservedDefined ident) -> errWithIdent SchemaNameReserved ident
   Left UnreachableSchemata -> throwError IsolatedSchemata
+  Left (DanglingTypeRefProp ident) -> errWithIdent MissingPropSchemaDefinition ident
+  Left (MinMoreThanMax ident) -> errWithIdent MinimumLengthGreaterThanMaximum ident
   Right g -> pure g
   where
+    errWithIdent errConst = throwError . errConst . toText
     go = do
       m <- intoMap scm
       startSchema <- checkStartSchema m
       edges <- intoEdges m startSchema
-      intoAcyclic edges
+      tg <- intoAcyclic edges
+      pure $ Schema tg m

@@ -15,7 +15,8 @@ import           Text.Megaparsec.Char        (char, eol)
 import qualified Data.Vector                 as V
 import           Data.Medea.Parser.Primitive (Identifier, MedeaString,
                                               parseIdentifier, parseLine,
-                                              parseReservedChunk, parseString)
+                                              parseReservedChunk, parseString,
+                                              parseKeyVal)
 import           Data.Medea.Parser.Types     (MedeaParser, ParseError)
 
 data Specification = Specification {
@@ -31,8 +32,8 @@ parseSpecification = Specification
   <*> try parsePropOptional
     where 
       parsePropName = parseLine 8 $
-        parseReservedChunk "property-name" *> char ' ' *> parseString
+        parseKeyVal "property-name" parseString
       parsePropSchema = option Nothing . parseLine 8 $
-        parseReservedChunk "property-schema" *> fmap Just parseIdentifier
+        Just <$> parseKeyVal "property-schema" parseIdentifier
       parsePropOptional = option False . parseLine 8 $
         parseReservedChunk "optional-property" $> True

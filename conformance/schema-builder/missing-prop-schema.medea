@@ -1,0 +1,6 @@
+$schema $start
+    $type
+        $boolean
+    $properties
+        $property-name "foo"
+        $property-schema bar

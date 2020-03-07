@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections #-}
 
 module Data.Medea.Parser.Spec.Array where
 
@@ -21,7 +20,7 @@ import Data.Medea.Parser.Types (MedeaParser, ParseError(..))
 
 data Specification = Specification {
   minLength :: Maybe Natural,
-  maxLength :: Maybe Natural 
+  maxLength :: Maybe Natural
 } deriving (Eq)
 
 instance Default Specification where
@@ -34,7 +33,7 @@ parseSpecification :: MedeaParser Specification
 parseSpecification = do
      parseLine 4 $ parseReservedChunk "length"
      spec <- try permute
-     case spec of 
+     case spec of
        Specification Nothing Nothing -> customFailure EmptyLengthSpec
        _                             -> pure spec
   where

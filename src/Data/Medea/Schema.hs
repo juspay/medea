@@ -1,11 +1,15 @@
 module Data.Medea.Schema where
 
 import Algebra.Graph.Acyclic.AdjacencyMap (AdjacencyMap)
+import Data.Map.Strict (Map)
 
-import Data.Medea.Analysis (TypeNode)
+import Data.Medea.Analysis (TypeNode, ReducedSchema)
+import Data.Medea.Parser.Primitive (Identifier)
+
 
 -- placeholder
-newtype Schema = Schema {
-  typeGraph :: AdjacencyMap TypeNode
+data Schema = Schema {
+  typeGraph :: AdjacencyMap TypeNode,
+  reducedSpec :: Map Identifier ReducedSchema
 }
   deriving (Show)

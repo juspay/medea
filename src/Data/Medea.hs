@@ -34,7 +34,8 @@ import Data.ByteString.Lazy (ByteString)
 import Data.Coerce (coerce)
 import Data.Data (Data)
 import Data.Hashable (Hashable (..))
-import Data.Medea.Analysis (TypeNode (..))
+import Data.Map.Strict (Map)
+import Data.Medea.Analysis (TypeNode (..), ReducedSchema)
 import Data.Medea.JSONType (JSONType (..))
 import Data.Medea.Loader
   ( LoaderError (..),
@@ -123,11 +124,11 @@ validate ::
   Schema ->
   ByteString ->
   m ValidatedJSON
-validate (Schema tg) bs = case decode bs of
+validate scm bs = case decode bs of
   Nothing -> throwError NotJSON
   Just v -> ValidatedJSON <$> go v
   where
-    go v = runReaderT (evalStateT (unfoldM checkTypes v) initialSet) tg
+    go v = runReaderT (evalStateT (unfoldM checkTypes v) initialSet) scm
     initialSet = singleton . CustomNode $ startIdentifier
 
 -- | Helper for construction of validated JSON from a JSON file.
@@ -156,7 +157,7 @@ validateFromHandle scm h = do
 -- Helpers
 
 checkTypes ::
-  (MonadReader (AdjacencyMap TypeNode) m, MonadState (NESet TypeNode) m, MonadError ValidationError m) =>
+  (MonadReader Schema m, MonadState (NESet TypeNode) m, MonadError ValidationError m) =>
   Value ->
   m (SchemaInformation, ValidJSONF Value)
 checkTypes v = do
@@ -174,7 +175,7 @@ checkTypes v = do
       (JSONObject, Object obj) -> put anySet >> pure (ObjectSchema, ObjectF obj)
       _ -> throwError . WrongType v $ t
     CustomNode ident -> do
-      neighbourhood <- asks (S.union rest . postSet current)
+      neighbourhood <- asks (S.union rest . postSet current . typeGraph)
       case neighbourhood of
         IsEmpty -> throwError . NotOneOfOptions $ v
         IsNonEmpty ne -> do

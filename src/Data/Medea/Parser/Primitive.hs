@@ -105,7 +105,7 @@ parseNatural = do
 
 -- String
 newtype MedeaString = MedeaString { unwrap :: Text }
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 parseString :: MedeaParser MedeaString
 parseString = do

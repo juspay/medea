@@ -143,15 +143,15 @@ Each of the subsequent entries has the following format:
 * **Default:** Describes the validation behaviour of a schema missing this
   specification.
 
-#### Array dimensions specification
+#### Array specification
 
-**Description:** An _array dimension specification_ describes the minimum and
+**Description:** An _array specification_ describes the minimum and
 maximum length of an array. 
 
 **Preconditions:** The schema must have a type specifier by which a JSON array
 would be considered valid.
 
-**Syntax:** An array dimensions specification MUST consist of the following, in
+**Syntax:** An array specification MUST consist of the following, in
 this order:
 
 1) Four space symbols;
@@ -190,61 +190,11 @@ specification in the same array dimensions specification.
 
 **Default:** An array may have any length (no minimum or maximum).
 
-#### Object meta-property specification
-
-**Description:** An _object meta-property specification_ describes the
-'properties of properties': whether any properties are required, and whether
-additional properties are allowed.
-
-**Preconditions:** The schema must have a type specifier by which a JSON object
-would be considered valid.
-
-**Syntax:** An object meta-property specification MUST consist of the following,
-in this order:
-
-1) Four space symbols;
-2) The reserved identifier ``$meta-properties``;
-3) A newline; and
-4) One, or both of: a _required property specification_, an _additional
-property ban_; in any order.
-
-A required property specification MUST consist of the following, in this order:
-
-1) Eight space symbols;
-2) The reserved identifier ``$optional-properties``;
-3) A newline; and
-4) Zero or more _required property lines_;
-
-A required property line MUST consist of the following, in this order:
-
-1) Twelve space symbols;
-2) A Medea string; and
-3) A newline
-
-An additional property ban MUST consist of the following, in this order:
-
-1) The reserved identifier ``$no-additional-properties``; and
-2) A newline  
-
-If a required property specification is given, but an additional property ban is
-not, then at least one required property line MUST be given.
-
-**Semantics:** A JSON value is considered valid by this specifier if it is a
-JSON object. Additionally, if a required property specification is provided, for
-each of its required property lines, the object must have a property with this
-name with a property value (that is, not `undefined`). Furthermore, if an
-additional property ban is given, the JSON object may not possess properties not
-allowed by its object property specification. 
-
-**Postconditions:** None. 
-
-**Default:** All properties required by the object property specification are
-required, and additional properties are allowed.
-
 #### Object property specification 
  
 **Description:** An _object property specification_ describes permitted
-properties for an object, and what schemata they must validate against. 
+properties for an object, what schemata they must validate against, whether the
+property is optional or required, and whether additional properties are allowed. 
 
 **Preconditions:** The schema must have a type specifier by which a JSON object
 would be considered valid.
@@ -254,37 +204,65 @@ this order:
 
 1) Four space symbols;
 2) The reserved identifier ``$properties``;
-3) A newline; and
-4) One or more _object property specifier sections_.
+3) A newline;
+4) Zero or more _object property specifier sections_; and
+5) An optional _additional property permission_.
 
-Each object property specifier sections MUST consist of the following, in this
+Each object property specifier section MUST consist of the following, in this
 order:
 
+1) A _property name line_; and
+2) An optional _property schema line_.
+3) An optional _optional property declaration_.
+
+A property name line MUST consist of the following, in this order:
+
 1) Eight space symbols;
-2) A Medea string;
-3) A newline; and
-4) Zero or more _object property schema lines_.
+2) The reserved identifier ``$property-name``;
+3) A single space symbol;
+4) A Medea string; and
+5) A newline.
 
-Each object property schema line MUST consist of the following, in this order:
+A property schema line MUST consist of the following, in this order:
 
-1) Twelve space symbols;
-2) _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
+1) Eight space symbols;
+2) The reserved identifier ``$property-schema``;
+3) A single space symbol;
+4) _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
   ``$array``, ``$number``, ``$string``; and
-3) A newline. 
+5) A newline.
+
+An optional property declaration MUST consist of the following, in this order:
+
+1) Eight space symbols;
+2) The reserved identifier ``$optional-property``; and
+3) A newline.
+
+An additional property permission MUST consist of the following, in this order:
+
+1) Eight space symbols;
+2) The reserved identifier ``$additional-properties-allowed``; and
+3) A newline.
 
 **Semantics:** A JSON value is considered valid by this specifier if it a JSON
 object, and for each of its object property specifier sections, the following
 all hold:
 
-* The object has a property whose name matches the Medea string given in said
-  object property specifier section;
-* The value of said property is valid by _any_ of its object property schema
-  lines.
+* The object has a property whose name is the same as the Medea string given a
+  the property name line;
+* If a corresponding property schema line is provided, the value of said 
+  property is valid by the schema named by the identifier given in the property 
+  schema line.
+* If a corresponding optional property declaration is _not_ provided, said 
+  property is defined (that is, is not ``undefined``).
 
-A property value is always valid by zero property schema lines. For more than
-one line, the following validation rules apply, based on the identifier in the
-line:
+Furthermore, if the additional property permission is _absent_, no property is defined
+for the object _other_ than those given by some object property specifier
+section. 
 
+A property value is always valid by no property schema line. Otherwise, these 
+validation rules apply, based on the naming identifier:
+ 
 * ``$null``: The property value is `null`.
 * ``$boolean``: The property value is a JSON boolean.
 * ``$object``: The property value is a JSON object.
@@ -295,11 +273,19 @@ line:
   named by this identifier. 
 
 **Postconditions:** A Medea validator MUST indicate a unique error condition if
-an identifier in an object property schema line does not correspond to any
-schema defined in the current schema file.
+an identifier in a property schema line does not correspond to any schema 
+defined in the current schema file.
 
-**Default:** A JSON object is considered valid regardless of what properties it
-does, or does not, have, by this specifier.
+If multiple object property specifier sections have a property name line naming
+the same schema, a Medea validator MUST indicate a unique error condition.
+
+**Default:** If an object property specification is not present at all, a JSON
+object is considered valid regardless of its properties and their values. 
+
+If an object property specification is present, but provides no additional
+information (that is, no object property specifier sections and no additional
+property permission), a JSON object is only considered valid if it is empty
+(that is, it defines no properties at all). 
 
 #### Type specification
 

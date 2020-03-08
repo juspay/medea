@@ -276,6 +276,9 @@ validation rules apply, based on the naming identifier:
 an identifier in a property schema line does not correspond to any schema 
 defined in the current schema file.
 
+If multiple object property specifier sections have a property name line naming
+the same schema, a Medea validator MUST indicate a unique error condition.
+
 **Default:** If an object property specification is not present at all, a JSON
 object is considered valid regardless of its properties and their values. 
 

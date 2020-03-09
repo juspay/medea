@@ -17,10 +17,7 @@ build-type:             Simple
 tested-with:            GHC == 8.6.5
 extra-source-files:     CHANGELOG.md,
                         README.md,
-                        SPEC.md,
-                        conformance/parser/*.medea,
-                        conformance/schema-builder/*.medea,
-                        conformance/validation/*.medea
+                        SPEC.md
 
 source-repository       head
   type:                 git

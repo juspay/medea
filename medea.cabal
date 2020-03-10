@@ -64,7 +64,8 @@ library
 test-suite conformance-parser
   type:                 exitcode-stdio-1.0
   main-is:              Main.hs
-  other-modules:        TestM
+  other-modules:        TestM,
+                        TestM.Util
   build-depends:        base,
                         medea,
                         mtl,
@@ -80,7 +81,8 @@ test-suite conformance-parser
 test-suite conformance-schema-builder
   type:                 exitcode-stdio-1.0
   main-is:              Main.hs
-  other-modules:        TestM
+  other-modules:        TestM,
+                        TestM.Util
   build-depends:        base,
                         medea,
                         mtl,
@@ -97,7 +99,8 @@ test-suite quickcheck-validator
   type:                 exitcode-stdio-1.0
   main-is:              Main.hs
   other-modules:        Data.Aeson.Arbitrary,
-                        TestM
+                        TestM,
+                        TestM.Util
   build-depends:        base,
                         medea,
                         aeson,

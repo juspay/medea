@@ -12,7 +12,7 @@ import Data.Maybe (isJust)
 import Data.Text (Text, cons, head, unpack, pack)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Functor (($>))
-import Text.Megaparsec (chunk, customFailure, single, some, manyTill,
+import Text.Megaparsec (chunk, customFailure, single, manyTill,
                         takeWhile1P, (<|>))
 import Text.Megaparsec.Char (char, eol)
 import Text.Megaparsec.Char.Lexer (charLiteral)
@@ -92,7 +92,7 @@ isStartIdent :: Identifier -> Bool
 isStartIdent = (== Identifier "$start")
 
 -- Natural Number
-newtype Natural = Natural { toInteger :: Integer }
+newtype Natural = Natural { natToWord :: Word }
   deriving (Eq, Ord, Show)
 
 parseNatural :: MedeaParser Natural

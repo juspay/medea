@@ -1,22 +1,6 @@
 $schema $start
     $type
-        foo
-        bar
-        foobar
-
-$schema foo
-    $type
         $array
     $length
         $minimum 3
         $maximum 2
-
-$schema bar
-    $length
-        $maximum 3
-    $type
-        $array
-
-$schema foobar
-    $length
-        $minimum 1

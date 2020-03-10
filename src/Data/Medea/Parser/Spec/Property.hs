@@ -28,12 +28,12 @@ data Specification = Specification {
 parseSpecification :: MedeaParser Specification
 parseSpecification = Specification
   <$> parsePropName
-  <*> try parsePropSchema
-  <*> try parsePropOptional
+  <*> parsePropSchema
+  <*> parsePropOptional
     where 
       parsePropName = parseLine 8 $
         parseKeyVal "property-name" parseString
-      parsePropSchema = option Nothing . parseLine 8 $
+      parsePropSchema = option Nothing . try . parseLine 8 $
         Just <$> parseKeyVal "property-schema" parseIdentifier
-      parsePropOptional = option False . parseLine 8 $
+      parsePropOptional = option False . try . parseLine 8 $
         parseReservedChunk "optional-property" $> True

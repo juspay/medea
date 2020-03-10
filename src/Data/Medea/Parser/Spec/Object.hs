@@ -8,12 +8,11 @@ import           Control.Applicative.Permutations (Permutation, runPermutation,
                                                    toPermutation,
                                                    toPermutationWithDefault)
 import           Control.Monad                    (replicateM_)
-import           Data.Default                     (Default(..))
 import           Data.Functor                     (($>))
 import           Data.Medea.Parser.Primitive      (Identifier, MedeaString,
                                                    parseIdentifier, parseLine,
                                                    parseReservedChunk,
-                                                   parseString, permute)
+                                                   parseString)
 import qualified Data.Medea.Parser.Spec.Property  as Property
 import           Data.Medea.Parser.Types          (MedeaParser, ParseError)
 import           Data.Text                        (Text)
@@ -28,11 +27,8 @@ data Specification = Specification {
   additionalAllowed :: Bool
 } deriving (Eq)
 
-getPropReferences :: Specification -> [Maybe Identifier]
-getPropReferences = V.toList . fmap Property.propSchema . properties
-
-instance Default Specification where
-  def = Specification V.empty False
+defaultSpec :: Specification
+defaultSpec = Specification V.empty False
 
 parseSpecification :: MedeaParser Specification
 parseSpecification = do

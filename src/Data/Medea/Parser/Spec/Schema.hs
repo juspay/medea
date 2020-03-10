@@ -8,7 +8,6 @@ import Control.Applicative.Permutations (Permutation,
                                          runPermutation,
                                          toPermutation,
                                          toPermutationWithDefault)
-import Data.Default (Default(..))
 import Data.Text (Text)
 import Text.Megaparsec (MonadParsec(..), (<|>))
 import Text.Megaparsec.Char (eol, char)
@@ -34,9 +33,6 @@ parseSpecification :: MedeaParser Specification
 parseSpecification = do
   schemaName <- parseLine 0 $ parseKeyVal "schema" parseIdentifier
   runPermutation $ Specification schemaName
-    <$> permuteWithDefault (try Type.parseSpecification)
-    <*> permuteWithDefault (try Array.parseSpecification)
-    <*> permuteWithDefault (try Object.parseSpecification)
-    where
-      permuteWithDefault :: (Alternative m, Default a) => m a -> Permutation m a
-      permuteWithDefault = toPermutationWithDefault def
+    <$> toPermutationWithDefault Type.defaultSpec (try Type.parseSpecification)
+    <*> toPermutationWithDefault Array.defaultSpec (try Array.parseSpecification)
+    <*> toPermutationWithDefault Object.defaultSpec (try Object.parseSpecification)

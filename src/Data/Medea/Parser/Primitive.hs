@@ -8,7 +8,6 @@ import Control.Applicative (Alternative)
 import Control.Applicative.Permutations (Permutation, toPermutationWithDefault)
 import Control.Monad (when, replicateM_)
 import Data.Char (isDigit, isSeparator, isControl)
-import Data.Default (Default(..))
 import Data.Maybe (isJust)
 import Data.Text (Text, cons, head, unpack, pack)
 import Data.Text.Encoding (encodeUtf8)
@@ -132,9 +131,6 @@ parseLine spaces p = replicateM_ spaces (char ' ') *> p <* eol
 
 isSeparatorOrControl :: Char -> Bool
 isSeparatorOrControl c = isSeparator c || isControl c
-
-permute :: (Alternative m) => Permutation m (a -> b) -> (a, m a) -> Permutation m b
-permute permF = (<*>) permF . uncurry toPermutationWithDefault
 
 parseKeyVal :: Text -> MedeaParser a -> MedeaParser a
 parseKeyVal key = (parseReservedChunk key *> char ' ' *>)

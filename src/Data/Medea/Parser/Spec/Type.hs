@@ -3,7 +3,6 @@
 
 module Data.Medea.Parser.Spec.Type where
 
-import Data.Default (Default(..))
 import Data.Text (Text)
 import Control.Monad (replicateM_)
 import Text.Megaparsec (MonadParsec(..), some)
@@ -19,8 +18,8 @@ import Data.Medea.Parser.Types (MedeaParser, ParseError)
 newtype Specification = Specification (Vector Identifier)
   deriving (Eq)
 
-instance Default Specification where
-  def = Specification V.empty
+defaultSpec :: Specification 
+defaultSpec = Specification V.empty
 
 getReferences :: Specification -> [Identifier]
 getReferences (Specification v) = V.toList v

@@ -3,7 +3,6 @@
 
 module Data.Medea.Parser.Spec.Array where
 
-import Data.Default (Default(..))
 import Data.Text (Text)
 import Control.Applicative ((<|>))
 import Control.Applicative.Permutations (runPermutation, toPermutation, toPermutationWithDefault)
@@ -23,8 +22,8 @@ data Specification = Specification {
   maxLength :: Maybe Natural
 } deriving (Eq)
 
-instance Default Specification where
-  def = Specification Nothing Nothing
+defaultSpec :: Specification
+defaultSpec = Specification Nothing Nothing
 
 combineSpec :: Specification -> Specification -> Specification
 combineSpec (Specification a1 b1) (Specification a2 b2) = Specification (a1 <|> a2) (b1 <|> b2)
@@ -38,8 +37,8 @@ parseSpecification = do
        _                             -> pure spec
   where
     permute = runPermutation $ Specification
-      <$> toPermutationWithDefault def (try parseMinSpec)
-      <*> toPermutationWithDefault def (try parseMaxSpec)
+      <$> toPermutationWithDefault Nothing (try parseMinSpec)
+      <*> toPermutationWithDefault Nothing (try parseMaxSpec)
     parseMinSpec = parseLine 8 $
       Just <$> parseKeyVal "minimum" parseNatural
     parseMaxSpec = parseLine 8 $

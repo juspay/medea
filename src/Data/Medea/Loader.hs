@@ -15,7 +15,7 @@ import Data.Medea.Analysis
     intoEdges,
     intoMap,
   )
-import Data.Medea.Parser.Primitive (toText)
+import Data.Medea.Parser.Primitive (toText, unwrap)
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
 import Data.Medea.Schema (Schema (..))
 import Data.Text (Text)
@@ -53,6 +53,9 @@ data LoaderError
     MissingPropSchemaDefinition Text
   | -- | Minimum length specification was more than maximum.
     MinimumLengthGreaterThanMaximum Text -- name of the schema
+  | -- | A property specifier section has two properties with the same name.
+    -- | Arguments are the parent Schema name and the property name.
+    MultiplePropSchemaDefinition Text Text
   deriving (Show)
 
 -- | Attempt to produce a schema from binary data in memory.
@@ -121,6 +124,8 @@ analyze scm = case runExcept go of
   Left UnreachableSchemata -> throwError IsolatedSchemata
   Left (DanglingTypeRefProp ident) -> errWithIdent MissingPropSchemaDefinition ident
   Left (MinMoreThanMax ident) -> errWithIdent MinimumLengthGreaterThanMaximum ident
+  Left (DuplicatePropName ident prop) -> throwError $
+    MultiplePropSchemaDefinition (toText ident) (unwrap prop)
   Right g -> pure g
   where
     errWithIdent errConst = throwError . errConst . toText

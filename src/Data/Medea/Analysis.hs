@@ -29,7 +29,7 @@ import qualified Data.Medea.Parser.Spec.Schema as Schema
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
 import qualified Data.Medea.Parser.Spec.Type as Type
 import Data.Medea.Parser.Spec.Array (minLength, maxLength)
-import Data.Medea.Parser.Spec.Object (getPropReferences, properties)
+import Data.Medea.Parser.Spec.Object (properties)
 import Data.Medea.Parser.Spec.Property (propSchema, propName, propOptional)
 import qualified Data.Set as S
 import qualified Data.Vector as V
@@ -43,6 +43,7 @@ data AnalysisError
   | UnreachableSchemata
   | MinMoreThanMax Identifier
   | DanglingTypeRefProp Identifier
+  | DuplicatePropName Identifier MedeaString
 
 data TypeNode
   = PrimitiveNode JSONType
@@ -123,11 +124,15 @@ reduceSchema ::
 reduceSchema scm@(Schema.Specification ident (Type.Specification types) arraySpec objSpec) = do
   let reducedArraySpec = (minLength arraySpec, maxLength arraySpec)
       typeNodes = fmap (identToNode . Just) types
-      reducedObjSpec = toMap . V.toList . properties $ objSpec
+  reducedObjSpec <- foldM go M.empty (properties objSpec)
   when (uncurry (>) reducedArraySpec) $
     throwError $ MinMoreThanMax ident
   pure $ ReducedSchema typeNodes reducedArraySpec reducedObjSpec
     where
+      go acc prop = M.alterF (checkedInsert prop) (propName prop) acc
+      checkedInsert prop = \case
+        Nothing -> pure . Just $ (identToNode (propSchema prop), propOptional prop)
+        Just _  -> throwError $ DuplicatePropName ident (propName prop)
       toMap = M.fromList . fmap reduceProp
       reduceProp prop = (propName prop,
                            (identToNode (propSchema prop), propOptional prop))

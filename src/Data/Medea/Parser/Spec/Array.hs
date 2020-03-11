@@ -3,15 +3,9 @@
 
 module Data.Medea.Parser.Spec.Array where
 
-import Data.Text (Text)
 import Control.Applicative ((<|>))
-import Control.Applicative.Permutations (runPermutation, toPermutation, toPermutationWithDefault)
-import Control.Monad (replicateM_)
-import Text.Megaparsec (MonadParsec(..), some, option, try, customFailure)
-import Text.Megaparsec.Char (eol, char)
-import Data.Vector (Vector)
-
-import qualified Data.Vector as V
+import Control.Applicative.Permutations (runPermutation, toPermutationWithDefault)
+import Text.Megaparsec (MonadParsec(..), try, customFailure)
 
 import Data.Medea.Parser.Primitive (Natural, parseKeyVal,
                                     parseReservedChunk, parseNatural, parseLine)
@@ -30,7 +24,7 @@ combineSpec (Specification a1 b1) (Specification a2 b2) = Specification (a1 <|> 
 
 parseSpecification :: MedeaParser Specification
 parseSpecification = do
-     parseLine 4 $ parseReservedChunk "length"
+     _ <- parseLine 4 $ parseReservedChunk "length"
      spec <- try permute
      case spec of
        Specification Nothing Nothing -> customFailure EmptyLengthSpec

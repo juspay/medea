@@ -8,9 +8,7 @@ import Algebra.Graph.Acyclic.AdjacencyMap (AdjacencyMap, toAcyclic)
 import qualified Algebra.Graph.AdjacencyMap as Cyclic
 import Control.Monad (foldM, when)
 import Control.Monad.Except (MonadError (..))
-import Control.Monad.State.Class (MonadState)
 import Control.Monad.State.Strict (evalStateT, gets, modify)
-import Data.Bool (bool)
 import Data.Maybe (isNothing)
 import qualified Data.Map.Strict as M
 import Data.Medea.JSONType (JSONType (..))

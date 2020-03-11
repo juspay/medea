@@ -21,7 +21,7 @@ module Data.Medea
   )
 where
 
-import Algebra.Graph.Acyclic.AdjacencyMap (AdjacencyMap, postSet)
+import Algebra.Graph.Acyclic.AdjacencyMap (postSet)
 import Control.Comonad.Cofree (Cofree (..), unfoldM)
 import Control.DeepSeq (NFData (..))
 import Control.Monad.Except (MonadError (..))
@@ -34,8 +34,7 @@ import Data.ByteString.Lazy (ByteString)
 import Data.Coerce (coerce)
 import Data.Data (Data)
 import Data.Hashable (Hashable (..))
-import Data.Map.Strict (Map)
-import Data.Medea.Analysis (TypeNode (..), ReducedSchema)
+import Data.Medea.Analysis (TypeNode (..))
 import Data.Medea.JSONType (JSONType (..))
 import Data.Medea.Loader
   ( LoaderError (..),

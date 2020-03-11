@@ -4,20 +4,13 @@
 module Data.Medea.Parser.Spec.Property
   (Specification(..), parseSpecification) where
 
-import           Control.Applicative         ((<|>))
-import           Control.Monad               (replicateM_)
 import           Data.Functor                (($>))
-import           Data.Text                   (Text)
-import           Data.Vector                 (Vector)
-import           Text.Megaparsec             (MonadParsec (..), many, option,
-                                              some, try)
-import           Text.Megaparsec.Char        (char, eol)
-import qualified Data.Vector                 as V
+import           Text.Megaparsec             (MonadParsec (..), option, try)
 import           Data.Medea.Parser.Primitive (Identifier, MedeaString,
                                               parseIdentifier, parseLine,
                                               parseReservedChunk, parseString,
                                               parseKeyVal)
-import           Data.Medea.Parser.Types     (MedeaParser, ParseError)
+import           Data.Medea.Parser.Types     (MedeaParser)
 
 data Specification = Specification {
   propName :: MedeaString,

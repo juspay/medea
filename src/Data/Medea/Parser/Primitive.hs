@@ -4,8 +4,6 @@
 module Data.Medea.Parser.Primitive where
 
 import Prelude hiding (head)
-import Control.Applicative (Alternative)
-import Control.Applicative.Permutations (Permutation, toPermutationWithDefault)
 import Control.Monad (when, replicateM_)
 import Data.Char (isDigit, isSeparator, isControl)
 import Data.Maybe (isJust)

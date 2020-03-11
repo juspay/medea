@@ -2,14 +2,12 @@
 
 module Data.Medea.Loader where
 
-import Algebra.Graph.Acyclic.AdjacencyMap (AdjacencyMap)
 import Control.Monad.Except (MonadError (..), runExcept)
 import Control.Monad.IO.Class (MonadIO (..))
 import Data.ByteString (ByteString, hGetContents, readFile)
 import qualified Data.List.NonEmpty as NE
 import Data.Medea.Analysis
   ( AnalysisError (..),
-    TypeNode,
     checkStartSchema,
     intoAcyclic,
     intoEdges,

@@ -3,20 +3,14 @@
 
 module Data.Medea.Parser.Spec.Schema where 
 
-import Control.Applicative (Alternative)
-import Control.Applicative.Permutations (Permutation,
-                                         runPermutation,
-                                         toPermutation,
+import Control.Applicative.Permutations (runPermutation,
                                          toPermutationWithDefault)
-import Data.Text (Text)
-import Text.Megaparsec (MonadParsec(..), (<|>))
-import Text.Megaparsec.Char (eol, char)
+import Text.Megaparsec (MonadParsec(..))
 
-import Data.Medea.Parser.Types (MedeaParser, ParseError)
+import Data.Medea.Parser.Types (MedeaParser)
 import Data.Medea.Parser.Primitive (Identifier, parseKeyVal,
                                     parseIdentifier, parseLine)
 
-import qualified Data.Vector as V
 import qualified Data.Medea.Parser.Spec.Array as Array
 import qualified Data.Medea.Parser.Spec.Object as Object
 import qualified Data.Medea.Parser.Spec.Type as Type

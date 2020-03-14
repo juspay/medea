@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 
@@ -7,6 +8,7 @@ import Prelude hiding (head)
 import Control.Monad (when, replicateM_)
 import Data.Char (isDigit, isSeparator, isControl)
 import Data.Maybe (isJust)
+import Data.Hashable (Hashable (..))
 import Data.Text (Text, cons, head, unpack, pack)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Functor (($>))
@@ -90,19 +92,18 @@ isStartIdent :: Identifier -> Bool
 isStartIdent = (== Identifier "$start")
 
 -- Natural Number
-newtype Natural = Natural { natToWord :: Word }
-  deriving (Eq, Ord, Show)
+type Natural = Word
 
 parseNatural :: MedeaParser Natural
 parseNatural = do
   digits <- takeWhile1P (Just "digits") isDigit
   when (head digits == '0') $
     customFailure . LeadingZero $ digits
-  pure . Natural . read . unpack $ digits
+  pure . read . unpack $ digits
 
 -- String
 newtype MedeaString = MedeaString { unwrap :: Text }
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Hashable)
 
 parseString :: MedeaParser MedeaString
 parseString = do

@@ -18,7 +18,7 @@ data Specification = Specification {
 } deriving (Eq)
 
 defaultSpec :: Specification
-defaultSpec = Specification V.empty False
+defaultSpec = Specification V.empty True
 
 parseSpecification :: MedeaParser Specification
 parseSpecification = do

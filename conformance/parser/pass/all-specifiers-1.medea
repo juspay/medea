@@ -1,0 +1,9 @@
+$schema $start
+    $type
+        $null
+        $boolean
+    $properties
+        $property-name "foo"
+        $property-name "bar"
+    $length
+        $maximum 42

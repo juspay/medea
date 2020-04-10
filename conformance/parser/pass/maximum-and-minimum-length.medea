@@ -1,0 +1,4 @@
+$schema foo
+    $length
+        $maximum 42
+        $minimum 1

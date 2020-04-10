@@ -1,0 +1,5 @@
+$schema foo
+    $type
+        $number
+        $boolean
+        $object

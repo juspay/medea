@@ -1,7 +1,5 @@
 $schema $start
     $properties
         $property-name "foo"
-        $property-schema $null
-        $property-name "bar"
         $optional-property
         $additional-properties-allowed

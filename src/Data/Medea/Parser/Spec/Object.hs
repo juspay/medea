@@ -23,8 +23,8 @@ defaultSpec = Specification V.empty True
 parseSpecification :: MedeaParser Specification
 parseSpecification = do
   _ <- parseLine 4 (parseReservedChunk "properties")
-  Specification <$> parseProperties <*> try parseAdditionalAllowed
+  Specification <$> parseProperties <*> parseAdditionalAllowed
   where
     parseProperties = V.fromList <$> many (try Property.parseSpecification)
-    parseAdditionalAllowed = option False . parseLine 8 $
+    parseAdditionalAllowed = option False . try . parseLine 8 $
       parseReservedChunk "additional-properties-allowed" $> True

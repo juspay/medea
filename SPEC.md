@@ -363,9 +363,8 @@ order:
 Each string value line MUST consist of the following, in this order:
 
 1) Eight space symbols;
-2) A single space symbol;
-3) A Medea string; and
-4) A newline.
+2) A Medea string; and
+3) A newline.
 
 **Semantics:** A JSON value is considered valid by this specifier if it is a
 JSON string. Additionally, the value must be equal to _any_ of the Medea strings

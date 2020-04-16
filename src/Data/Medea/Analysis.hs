@@ -28,6 +28,7 @@ import Data.Medea.Parser.Primitive
 import qualified Data.Medea.Parser.Spec.Schema as Schema
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
 import qualified Data.Medea.Parser.Spec.Type as Type
+import qualified Data.Medea.Parser.Spec.String as String
 import Data.Medea.Parser.Spec.Array (minLength, maxLength)
 import Data.Medea.Parser.Spec.Object (properties, additionalAllowed)
 import Data.Medea.Parser.Spec.Property (propSchema, propName, propOptional)
@@ -54,11 +55,13 @@ data TypeNode
 
 data ReducedSchema = ReducedSchema {
   reducedTypes :: ReducedTypeSpec,
+  reducedStringVals :: ReducedStringValSpec,
   reducedArray :: ReducedArraySpec,
   reducedObject :: ReducedObjectSpec
 }
   deriving (Show)
 type ReducedTypeSpec = V.Vector TypeNode
+type ReducedStringValSpec = V.Vector Text
 type ReducedArraySpec = (Maybe Natural, Maybe Natural)
 type ReducedObjectSpec = (HM.HashMap Text (TypeNode, Bool), Bool)
 
@@ -68,6 +71,7 @@ intoAcyclic ::
   m (AdjacencyMap TypeNode)
 intoAcyclic = maybe (throwError TypeRelationIsCyclic) pure . toAcyclic . Cyclic.edges
 
+-- TODO - currently the reduced string val spec gets thrown out  when constructing Typenodes - do we need a typenode for specified values
 intoEdges ::
   (MonadError AnalysisError m) =>
   M.Map Identifier ReducedSchema ->
@@ -129,12 +133,13 @@ reduceSchema ::
 reduceSchema scm = do
   let reducedArraySpec = coerce (minLength arraySpec, maxLength arraySpec)
       typeNodes = fmap (identToNode . Just) types
+      reducedStringValsSpec = String.toReducedSpec $ stringValsSpec 
   reducedProps <- foldM go HM.empty (properties objSpec)
   when (uncurry (>) reducedArraySpec) $
     throwError $ MinMoreThanMax schemaName
-  pure $ ReducedSchema typeNodes reducedArraySpec (reducedProps, additionalAllowed objSpec)
+  pure $ ReducedSchema typeNodes reducedStringValsSpec reducedArraySpec (reducedProps, additionalAllowed objSpec)
     where
-      Schema.Specification schemaName (Type.Specification types) arraySpec objSpec
+      Schema.Specification schemaName (Type.Specification types)  stringValsSpec arraySpec objSpec
         = scm
       go acc prop = HM.alterF (checkedInsert prop) (coerce $ propName prop) acc
       checkedInsert prop = \case

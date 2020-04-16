@@ -55,13 +55,10 @@ import Data.Medea.ValidJSON (ValidJSONF (..))
 import qualified Data.Set as S
 import Data.Set.NonEmpty
   ( NESet,
-    deleteFindMin,
     singleton,
-    toList,
     findMin,
     member,
     dropWhileAntitone,
-    pattern IsEmpty,
     pattern IsNonEmpty,
   )
 import Data.Text (Text)
@@ -132,7 +129,7 @@ data ValidationError
   | AdditionalPropFoundButBanned Text Text
   | RequiredPropertyIsMissing Text Text
   | OutOfBoundsArrayLength Text Value
-  deriving (Eq)
+  deriving (Eq, Show)
 
 instance Semigroup ValidationError where
   EmptyError <> x = x
@@ -179,11 +176,12 @@ validateFromHandle scm h = do
 
 -- Helpers
 
--- We have 3 different cases:
+-- We have 4 different cases:
 -- 1. If we are checking against AnyNode, we ALWAYS succeed.
 -- 2. If we are checking against PrimitiveNode, we can match with EXACTLY ONE
 --    kind of PrimitiveNode.
 -- 3. If we are checking against CustomNode, we can match against ANY CustomNode.
+-- 4. if we are checking against a dependant string, we can match with one of supplied values
 --    Thus, we must try all of them.
 checkTypes
   :: (Alternative m, MonadReader Schema m, MonadState (NESet TypeNode, Maybe Identifier) m, MonadError ValidationError m)
@@ -216,7 +214,15 @@ checkPrim v = do
     Null -> pure $ NullSchema :< NullF
     Bool b -> pure $ BooleanSchema :< BooleanF b
     Number n -> pure $ NumberSchema :< NumberF n
-    String s -> pure $ StringSchema :< StringF s
+    String s -> do 
+      case par of
+        Nothing -> pure $ StringSchema :< StringF s
+        Just parIdent -> do
+          scm <- lookupSchema parIdent
+          let validVals = reducedStringVals scm
+          if s `V.elem` validVals
+             then pure $ StringSchema :< StringF s
+             else throwError $ NotOneOfOptions v
     Array arr -> do
       case par of
         Nothing -> pure ()

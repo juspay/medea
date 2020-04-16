@@ -1,8 +1,9 @@
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Data.Aeson.Arbitrary where
 
-import Control.Monad (replicateM)
+import Control.Monad (replicateM, filterM)
 import Test.QuickCheck (Arbitrary(..), Gen)
 import Test.QuickCheck.Gen (choose, chooseAny)
 import Data.Aeson (Value(..))
@@ -13,12 +14,20 @@ import Test.QuickCheck.Instances.Scientific ()
 
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as HM
+import Data.Text (Text)
 
-newtype RandomJSON = RandomJSON { toValue :: Value }
-  deriving (Show)
+-- Takes 4 fields:
+-- required properties,
+-- optional properties,
+-- minimum additional properties &
+-- maximum additional properties.
+data ObjGenOpts = ObjGenOpts [Text] [Text] Int Int
 
-instance Arbitrary RandomJSON where
-  arbitrary = RandomJSON <$> runReaderT makeRandomValue 5 -- recursion depth
+arbitraryValue :: Gen Value
+arbitraryValue = runReaderT makeRandomValue 5 -- recursion depth
+
+arbitraryObj :: ObjGenOpts -> Gen Value
+arbitraryObj opts = runReaderT (makeRandomObject opts) 2
 
 isNull :: Value -> Bool
 isNull Null = True
@@ -58,8 +67,16 @@ makeRandomValue = do
     4 -> do
       len <- lift . choose $ (0, 10)
       Array <$> V.replicateM len (local dec makeRandomValue)
-    _ -> do
-      entryCount <- lift . choose $ (0, 10)
-      keyVals <- replicateM entryCount ((,) <$> lift arbitrary <*> local dec makeRandomValue)
-      pure . Object . HM.fromList $ keyVals
-  where dec = subtract 1
+    _ -> makeRandomObject (ObjGenOpts [] [] 0 10)
+
+makeRandomObject :: ObjGenOpts -> ReaderT Word Gen Value
+makeRandomObject (ObjGenOpts props optionalProps minAdditional maxAdditional) = do
+  entryCount <- lift $ choose (minAdditional, maxAdditional)
+  genKeys <- replicateM entryCount $ lift arbitrary
+  someOptionalProps <- filterM (\_ -> lift arbitrary) optionalProps
+  let keys = genKeys ++ props ++ someOptionalProps
+  keyVals <- mapM (\x -> (x,) <$> local dec makeRandomValue) keys
+  pure . Object . HM.fromList $ keyVals
+
+dec :: Word -> Word
+dec = subtract 1

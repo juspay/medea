@@ -107,6 +107,7 @@ test-suite quickcheck-validator
                         aeson,
                         mtl,
                         vector,
+                        text,
                         hspec >= 2.7.1 && < 2.8.0,
                         hspec-core >= 2.7.1 && < 2.8.0,
                         directory >= 1.3.3.0 && < 1.4.0.0,

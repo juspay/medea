@@ -71,7 +71,6 @@ intoAcyclic ::
   m (AdjacencyMap TypeNode)
 intoAcyclic = maybe (throwError TypeRelationIsCyclic) pure . toAcyclic . Cyclic.edges
 
--- TODO - currently the reduced string val spec gets thrown out  when constructing Typenodes - do we need a typenode for specified values
 intoEdges ::
   (MonadError AnalysisError m) =>
   M.Map Identifier ReducedSchema ->

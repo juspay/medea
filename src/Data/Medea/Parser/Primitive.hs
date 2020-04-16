@@ -1,30 +1,32 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Data.Medea.Parser.Identifier where 
+module Data.Medea.Parser.Primitive where
 
 import Prelude hiding (head)
+import Control.Monad (when, replicateM_)
+import Data.Char (isDigit, isSeparator, isControl)
 import Data.Maybe (isJust)
-import Data.Text (Text, cons, head)
+import Data.Hashable (Hashable (..))
+import Data.Text (Text, cons, head, unpack, pack)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Functor (($>))
-import Data.Char (isSeparator, isControl)
-import Text.Megaparsec (MonadParsec(..), 
-                        chunk, customFailure, single, (<|>))
+import Text.Megaparsec (chunk, customFailure, single, manyTill,
+                        takeWhile1P, (<|>))
+import Text.Megaparsec.Char (char, eol)
+import Text.Megaparsec.Char.Lexer (charLiteral)
 
 import qualified Data.ByteString as BS
 
 import Data.Medea.JSONType (JSONType(..))
-import Data.Medea.Parser.Error (ParseError(..))
+import Data.Medea.Parser.Types (MedeaParser, ParseError(..))
 
+-- Identifier
 newtype Identifier = Identifier { toText :: Text }
   deriving (Eq, Ord, Show)
 
-isSeparatorOrControl :: Char -> Bool
-isSeparatorOrControl c = isSeparator c || isControl c
-
-parseIdentifier :: (MonadParsec ParseError Text m) => 
-  m Identifier
+parseIdentifier :: MedeaParser Identifier
 parseIdentifier = do
   ident <- takeWhile1P (Just "Non-separator") (not . isSeparatorOrControl)
   checkedConstruct Identifier ident
@@ -35,28 +37,15 @@ startIdentifier = Identifier "$start"
 newtype ReservedIdentifier = ReservedIdentifier Text
   deriving (Eq)
 
-parseReserved :: (MonadParsec ParseError Text m) => 
-  m ReservedIdentifier
+parseReserved :: MedeaParser ReservedIdentifier
 parseReserved = do
   lead <- single '$'
   rest <- takeWhile1P Nothing (not . isSeparatorOrControl)
   let ident = cons lead rest
   checkedConstruct ReservedIdentifier ident
 
-parseSchemaHeader :: (MonadParsec ParseError Text m) => 
-  m ReservedIdentifier
-parseSchemaHeader = do
-  ident <- chunk "$schema"
-  pure . ReservedIdentifier $ ident
-
-parseTypeHeader :: (MonadParsec ParseError Text m) => 
-  m ReservedIdentifier
-parseTypeHeader = do
-  ident <- chunk "$type"
-  pure . ReservedIdentifier $ ident
-
 tryReserved :: Identifier -> Maybe ReservedIdentifier
-tryReserved (Identifier ident) = 
+tryReserved (Identifier ident) =
   if head ident == '$'
   then Just (ReservedIdentifier ident)
   else Nothing
@@ -67,10 +56,9 @@ forgetReserved (ReservedIdentifier ident) = Identifier ident
 newtype PrimTypeIdentifier = PrimTypeIdentifier { typeOf :: JSONType }
   deriving (Eq)
 
-parsePrimType :: (MonadParsec ParseError Text m) => 
-  m PrimTypeIdentifier
-parsePrimType = PrimTypeIdentifier <$> 
-                (chunk "$null" $> JSONNull <|> 
+parsePrimType :: MedeaParser PrimTypeIdentifier
+parsePrimType = PrimTypeIdentifier <$>
+                (chunk "$null" $> JSONNull <|>
                  chunk "$boolean" $> JSONBoolean <|>
                  chunk "$object" $> JSONObject <|>
                  chunk "$array" $> JSONArray <|>
@@ -78,7 +66,7 @@ parsePrimType = PrimTypeIdentifier <$>
                  chunk "$string" $> JSONString)
 
 tryPrimType :: Identifier -> Maybe PrimTypeIdentifier
-tryPrimType (Identifier ident) = PrimTypeIdentifier <$> 
+tryPrimType (Identifier ident) = PrimTypeIdentifier <$>
   (case ident of
     "$null" -> Just JSONNull
     "$boolean" -> Just JSONBoolean
@@ -103,10 +91,45 @@ isReserved = isJust . tryReserved
 isStartIdent :: Identifier -> Bool
 isStartIdent = (== Identifier "$start")
 
+-- Natural Number
+type Natural = Word
+
+parseNatural :: MedeaParser Natural
+parseNatural = do
+  digits <- takeWhile1P (Just "digits") isDigit
+  when (head digits == '0') $
+    customFailure . LeadingZero $ digits
+  pure . read . unpack $ digits
+
+-- String
+newtype MedeaString = MedeaString { unwrap :: Text }
+  deriving (Eq, Ord, Show, Hashable)
+
+parseString :: MedeaParser MedeaString
+parseString = do
+  string <- char '"' *> manyTill charLiteral (char '"')
+  pure . MedeaString . pack $ string
+
 -- Helpers
-checkedConstruct :: (MonadParsec ParseError Text m) => 
-  (Text -> a) -> Text -> m a
-checkedConstruct f t = 
+checkedConstruct :: 
+  (Text -> a) -> Text -> MedeaParser a
+checkedConstruct f t =
   if (> 32) . BS.length . encodeUtf8 $ t
   then customFailure . IdentifierTooLong $ t
   else pure . f $ t
+
+{-# INLINE parseReservedChunk #-}
+parseReservedChunk :: Text -> MedeaParser ReservedIdentifier
+parseReservedChunk identName = do
+  ident <- chunk $ "$" <> identName
+  checkedConstruct ReservedIdentifier ident
+
+{-# INLINE parseLine #-}
+parseLine :: Int -> MedeaParser a -> MedeaParser a
+parseLine spaces p = replicateM_ spaces (char ' ') *> p <* eol
+
+isSeparatorOrControl :: Char -> Bool
+isSeparatorOrControl c = isSeparator c || isControl c
+
+parseKeyVal :: Text -> MedeaParser a -> MedeaParser a
+parseKeyVal key = (parseReservedChunk key *> char ' ' *>)

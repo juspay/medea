@@ -20,7 +20,6 @@ isParseError (Left IdentifierTooLong) = True
 isParseError (Left (ParserError _)) = True
 isParseError _  = False
 
--- TODO: Fill in properly
 isSchemaError :: Either LoaderError a -> Bool
 isSchemaError (Left StartSchemaMissing) = True
 isSchemaError (Left SelfTypingSchema) = True
@@ -28,4 +27,7 @@ isSchemaError (Left (MultipleSchemaDefinition _)) = True
 isSchemaError (Left (MissingSchemaDefinition _)) = True
 isSchemaError (Left (SchemaNameReserved _)) = True
 isSchemaError (Left IsolatedSchemata) = True
+isSchemaError (Left (MissingPropSchemaDefinition _)) = True
+isSchemaError (Left (MinimumLengthGreaterThanMaximum _)) = True
+isSchemaError (Left (MultiplePropSchemaDefinition _ _)) = True
 isSchemaError _ = False

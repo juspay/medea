@@ -191,7 +191,6 @@ checkTypes
   -> m (Cofree ValidJSONF SchemaInformation)
 checkTypes v = checkAny v <|> checkPrim v <|> checkCustoms v
 
-
 -- checkAny throws EmptyError if AnyNode is not found. This lets checkTypes
 -- use the error thrown by checkPrim/checkCustoms if checkAny fails.
 checkAny

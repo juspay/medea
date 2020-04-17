@@ -133,12 +133,12 @@ hasOptionalProperty :: Text -> (Value -> Bool) -> Value -> Bool
 hasOptionalProperty propName p (Object obj) = maybe True p $ lookup propName obj
 hasOptionalProperty _ _ _ = False
 
-testStringVals :: FilePath -> String -> [ String ] -> Spec
+testStringVals :: FilePath -> [ String ] -> Spec
 testStringVals fp validStrings = do
   scm <- loadAndParse $ prependTestDir $ fp
   it ("Should validate " ++ "string is one of " ++ show validStrings ++ "s: " ++ fp) (property . forAll genString . validationIsCorrect $ scm)
   
-  it ("Shouldn't validate " ++ name ++ "s: " ++ fp) (property . forAll genString . invalidationIsCorrect $ scm)
+  it ("Shouldn't validate " ++ "string is one of " ++ show validStrings ++ "s: " ++ fp) (property . forAll genString . invalidationIsCorrect $ scm)
   where 
     validationIsCorrect scm s = s `elem` validStrings ==> isRight . runExcept . validate scm . encode $ s 
     invalidationIsCorrect scm s  = not (s `elem` validStrings) ==> isLeft . runExcept . validate scm . encode $ s

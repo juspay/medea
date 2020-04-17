@@ -1,10 +1,28 @@
 # Specification
 
+## Introduction
+
+This specification describes Medea, which is intended as a schema language for
+describing and validating the structure of JSON documents. In particular, this
+specification describes the following:
+
+- The human-readable representation of a Medea description of a JSON document
+  (that is, the _syntax_);
+- The validation behaviour that is required from any given Medea construct (that
+  is, the _semantics_); and
+- Any requirements or limitations, as precisely as possible.
+
 ## Conventions
 
 The keywords MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT, SHOULD, SHOULD NOT,
 RECOMMENDED, MAY and OPTIONAL are to be interpreted as described in [RFC
 2119][rfc2119].
+
+_Compile time_ refers to the step when the human-readable representation of a
+Medea description is being converted to a machine-usable form. _Validation time_
+refers to the step when, given a JSON document to validate and a machine-usable
+form of a Medea description, validation of said document against said
+description is requested.
 
 To _indicate a unique error condition_ means that the Medea validator MUST:
 
@@ -14,7 +32,9 @@ To _indicate a unique error condition_ means that the Medea validator MUST:
 
 A Medea validator SHOULD use language-native means to indicate unique error
 conditions (such as a language-specific error or exception), as opposed to use
-of string error messages or output to the standard error stream.
+of string error messages or output to the standard error stream. Unique error
+conditions can be indicated both at compile time and validation time; if not
+specified, they SHOULD be indicated at compile time.
 
 A _JSON value_ is taken to be defined: that is, ``undefined`` is not considered
 to be a valid JSON value. A Medea validator MUST NOT indicate that an
@@ -38,7 +58,7 @@ Any identifier starting with the "$" symbol is _reserved_. Users MUST NOT
 define identifiers starting with the "$" symbol, as they are used by Medea
 validators internally. A Medea validator MAY fail if given a user-defined
 identifier starting with the "$" symbol; if it does so, it MUST indicate a
-unique error condition in such a case.
+unique error condition.
 
 Unless stated otherwise, a Medea identifier is _non-reserved_.
 
@@ -48,15 +68,18 @@ A Medea _string_ is a non-empty sequence of UTF-8 scalar values (as defined by
 [definition D76 (pdf)][d76] of the Unicode 5.2 standard), containing no symbols
 from categories [Zs, Zl, Zp or Cc][categories]. Furthermore, the first and last
 symbol of a Medea string must both be QUOTATION MARK Unicode character (hex code
-0x22). [note about string validation?]
+0x22). A Medea validator MUST indicate a unique error condition if given a
+sequence of UTF-8 scalar values which has a QUOTATION MARK at the first and last
+symbol, but contains symbols from any of Zs, Zl, Zp or Cc.
 
 ## Natural numbers
 
 A Medea _natural number_ is a non-empty sequence of UTF-8 scalar values (as
 defined by [definition D76 (pdf)][d76] of the Unicode 5.2 standard), containing
 only symbols from DIGIT ZERO to DIGIT NINE inclusive (hex codes 0x30 to 0x39),
-and not starting with DIGIT ZERO (hex code 0x30). [note about whitespace ending
-a number?]
+and not starting with DIGIT ZERO (hex code 0x30). A Medea validator SHOULD
+indicate a unique error condition if it finds a sequence of DIGIT ZERO to DIGIT
+NINE starting with DIGIT ZERO.
 
 The _value_ of a Medea natural number is the natural number which it textually
 represents.
@@ -85,7 +108,8 @@ MUST provide the following _primitive type identifiers_:
 
 ## Schema graph file format
 
-A Medea _schema graph file_ MUST be encoded as UTF-8. A Medea validator MUST
+A Medea _schema graph file_ is a human-readable representation of a Medea
+specification. A Medea schema graph file MUST be encoded as UTF-8. A Medea validator MUST
 indicate a unique error condition if asked to parse a schema graph file which is
 not encoded as valid UTF-8.
 
@@ -102,7 +126,7 @@ A Medea file is made up of one or more _schemata_. A _schema_ (singular of
 
 A Medea validator MUST indicate a unique error condition if a schema is defined
 with a name that has already been used as the naming identifier of an existing
-schema in the same file. Additionally, a Medea validator MUST raise a unique 
+schema in the same file. Additionally, a Medea validator MUST indicate a unique 
 error condition if the order, or formation rules, described above (or 
 subsequent in the case of type specifications or additional specifications) 
 are violated: each possible violation is distinct from any other. 
@@ -143,52 +167,85 @@ Each of the subsequent entries has the following format:
 * **Default:** Describes the validation behaviour of a schema missing this
   specification.
 
-#### Array specification
+Certain combinations of specifications can produce contradictory requirements:
+for example, a schema may have a type specification which requires a JSON object
+with a property "foo" with a JSON string value, but then have an object property
+specification saying that property "foo" should have a value which is a JSON array. 
+A Medea validator MUST indicate a unique error condition at compile time in such
+situations.
 
-**Description:** An _array specification_ describes the minimum and
-maximum length of an array. 
+#### List specification
+
+**Description:** A _list specification_ describes the specifics of a JSON array
+meant to serve as a list; that is, a homogenously-typed collection of varying
+length.
 
 **Preconditions:** The schema must have a type specifier by which a JSON array
-would be considered valid.
+would be considered valid. Additionally, the schema must not contain a tuple
+specification, nor have a type specifier whose schema contains a tuple
+specification, either directly or transitively (via its own type specifier). 
 
-**Syntax:** An array specification MUST consist of the following, in
-this order:
+**Syntax:** A list specification MUST consist of one, or both, of the following, in any order: 
+
+1) A _length specification_; and
+2) An _element schema specification_.
+
+A length specification MUST consist of one, or both, of the following, in any order:
+
+1) A _minimum length specification_; and
+2) A _maximum length specification_.
+
+An element schema specification MUST consist of the following, in this order:
 
 1) Four space symbols;
-2) The reserved identifier ``$length``;
-3) A newline; and
-4) One, or both of: a _minimum length specification_, a _maximum length
-specification_; in any order.
+2) The reserved identifier ``$element_type``;
+3) A space symbol;
+4) _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
+   ``$array``, ``$number``, ``$string``; and
+5) A newline.
 
 A minimum length specification MUST consist of the following, in this order:
 
-1) Eight space symbols;
-2) The reserved identifier ``$minimum``;
-3) A single space symbol; 
+1) Four space symbols;
+2) The reserved identifier ``$min_length``;
+3) A single space symbol;
 4) A Medea natural number; and
 5) A newline.
 
 A maximum length specification MUST consist of the following, in this order:
 
-1) Eight space symbols;
-2) The reserved identifier ``$maximum``;
+1) Four space symbols;
+2) The reserved identifier ``$max_length``;
 3) A single space symbol;
 4) A Medea natural number; and
 5) A newline.
 
-**Semantics:** A JSON value is considered valid by this specificer if it is a
-JSON array. Additionally, if a minimum length specification is provided, the
-array must have at least as many elements as the value of the Medea natural
-number in said specification. Furthermore, if a maximum length specification is
-provided, the array must have no more elements than the value of the Medea
-natural number in said specification.
+**Semantics:** A JSON value is considered valid by this specifier if it is a
+JSON array. Additionally: 
 
-**Postconditions:** A Medea validator MUST indicate a unique error condition if
-the value of the Medea natural number in a minimum length specification is
-greater than the value of the Medea natural number in a maximum length
-specification in the same array dimensions specification.
+* If an element schema specification is provided, every element of the array 
+  must be valid, as defined by the following validation rules:
+    * ``$null``: The value is ``null``.
+    * ``$boolean``: The value is a JSON boolean.
+    * ``$object``: The value is a JSON object.
+    * ``$array``: The value is a JSON array.
+    * ``$number``: The value is a JSON number.
+    * ``$string``: The value is a JSON string.
+    * Any other identifier: The value is valid according to the schema named by
+      this identifier.
+* If a minimum length specification is provided, the array must have at least as
+  many elements as the value of the Medea natural number in said specification.
+* If a maximum length specification is provided, the array must _not_ have more
+  elements than the value of the Medea natural number in said specification.
 
-**Default:** An array may have any length (no minimum or maximum).
+**Postconditions:** If both a minimum length specification and a maximum length
+specification are provided, a Medea validator MUST indicate a unique error
+condition if the value of the Medea natural number in the minimum length
+specification is greater than the value of the Medea natural number in the
+maximum length specification.
+
+**Default:** An array may have any length (no minimum or maximum), and its
+elements may be any JSON value.
 
 #### Object property specification 
  
@@ -286,6 +343,86 @@ If an object property specification is present, but provides no additional
 information (that is, no object property specifier sections and no additional
 property permission), a JSON object is only considered valid if it is empty
 (that is, it defines no properties at all). 
+
+#### String value specification
+
+**Description:** A _string value specification_ describes which values a JSON string
+is allowed to have.
+
+**Preconditions:** The schema must have a type specifier by which a JSON string
+would be considered valid.
+
+**Syntax:** A string value specification MUST consist of the following, in this
+order:
+
+1) Four space symbols;
+2) The reserved identifier ``$string_values``;
+3) A newline;
+4) One or more _string value lines_; and
+
+Each string value line MUST consist of the following, in this order:
+
+1) Eight space symbols;
+2) A Medea string; and
+3) A newline.
+
+**Semantics:** A JSON value is considered valid by this specifier if it is a
+JSON string. Additionally, the value must be equal to _any_ of the Medea strings
+in a string value line.
+
+**Postconditions:** A Medea validator MAY indicate a unique error condition at
+compile time if two or more string value lines for the same string value
+specifier are the same.
+
+**Default:** The JSON string may have any value. 
+
+#### Tuple specification
+
+**Description:** A _tuple specification_ describes the specifics of a JSON array
+meant to serve as a tuple; that is, a heterogenously-typed collection of fixed
+length.
+
+**Preconditions:** The schema must have a type specifier by which a JSON array
+would be considered valid. Additionally, the schema must not contain a list
+specification, nor have a type specifier whose schema contains a list
+specification, either directly or transitively (via its own type specifier). 
+
+**Syntax:** A tuple specification MUST consist of the following, in this order:
+
+1) Four space symbols;
+2) The reserved identifier ``$tuple``;
+3) A newline; and
+3) Zero or more _positional schema specifications_.
+
+A positional schema specification MUST consist of the following, in this order:
+
+1) Eight space symbols;
+2) _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
+   ``$array``, ``$number``, ``$string``; and
+3) A newline.
+
+**Semantics:** A JSON value is considered valid by this specifier if it is a
+JSON array. Additionally, let _p(1)_, _p(2)_, ..., _p(N)_ be each of the
+positional specifications, in the order declared, where _N_ is the total number
+of positional schema specifications. For each _i_ in 1, 2, ... _N_, the _i -
+1_th element of the array must be valid according to the following rules, based
+on the Medea identifier used in _p(i)_:
+
+* ``$null``: The value is ``null``.
+* ``$boolean``: The value is a JSON boolean.
+* ``$object``: The value is a JSON object.
+* ``$array``: The value is a JSON array.
+* ``$number``: The value is a JSON number.
+* ``$string``: The value is a JSON string.
+* Any other identifier: The value is valid according to the schema named by this 
+  identifier.
+
+Lastly, the array must have a length of _exactly_ _N_.
+
+**Postconditions:** None. 
+
+**Default:** An array may have any length, and its elements may be any JSON
+value.
 
 #### Type specification
 

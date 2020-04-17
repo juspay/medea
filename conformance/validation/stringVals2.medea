@@ -1,0 +1,8 @@
+$schema $start
+    $type
+        $string
+    $string_values
+        "accountant"
+        "barber"
+        "bishop"
+        "baker"

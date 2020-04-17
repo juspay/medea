@@ -1,0 +1,11 @@
+$schema $start
+    $type
+        foo
+
+$schema foo
+    $type
+        $object
+    $properties
+        $property-name "foo"
+        $property-schema $number
+        $additional-properties-allowed

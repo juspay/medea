@@ -181,7 +181,6 @@ validateFromHandle scm h = do
 -- 2. If we are checking against PrimitiveNode, we can match with EXACTLY ONE
 --    kind of PrimitiveNode.
 -- 3. If we are checking against CustomNode, we can match against ANY CustomNode.
--- 4. if we are checking against a dependant string, we can match with one of supplied values
 --    Thus, we must try all of them.
 checkTypes
   :: (Alternative m, MonadReader Schema m, MonadState (NESet TypeNode, Maybe Identifier) m, MonadError ValidationError m)
@@ -216,11 +215,12 @@ checkPrim v = do
     Number n -> pure $ NumberSchema :< NumberF n
     String s -> do 
       case par of
+        -- if we are checking against a dependant string, we match against the supplied values
         Nothing -> pure $ StringSchema :< StringF s
         Just parIdent -> do
           scm <- lookupSchema parIdent
           let validVals = reducedStringVals scm
-          if s `V.elem` validVals
+          if s `V.elem` validVals || length validVals == 0
              then pure $ StringSchema :< StringF s
              else throwError $ NotOneOfOptions v
     Array arr -> do

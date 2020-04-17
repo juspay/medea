@@ -19,7 +19,6 @@ import Test.QuickCheck ((==>), arbitrary, forAll, property, quickCheck)
 import qualified Test.QuickCheck.Gen as Gen
 import TestM (isParseError, isSchemaError, runTestM)
 
-
 main :: IO ()
 main = hspec $ do
   describe "Any schema" . testAny $ "./conformance/validation/any.medea"
@@ -60,12 +59,11 @@ testSingular fp name p = do
 testStringVals :: FilePath -> String -> [ String ] -> Spec
 testStringVals fp name validStrings = do
   scm <- loadAndParse fp
-  pure ()
   it ("Should validate " ++ name ++ "s: " ++ fp) (property . forAll genString . validationIsCorrect $ scm)
   
   it ("Shouldn't validate " ++ name ++ "s: " ++ fp) (property . forAll genString . invalidationIsCorrect $ scm)
   where 
-    validationIsCorrect scm s = s `elem` validStrings ==> isRight . runExcept . validate scm $ encode s 
+    validationIsCorrect scm s = s `elem` validStrings ==> isRight . runExcept . validate scm . encode $ s 
     invalidationIsCorrect scm s  = not (s `elem` validStrings) ==> isLeft . runExcept . validate scm . encode $ s
 
     genString :: Gen.Gen String

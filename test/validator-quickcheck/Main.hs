@@ -59,11 +59,18 @@ main = hspec $ do
     $ hasOptionalProperty "foo" isObject
   describe "Object schema with 3 properties"
     . testObject (arbitraryObj $ ObjGenOpts ["foo", "bar", "bazz"] [] 0 0) "3-property-no-additional-1.medea"
-    $ hasOptionalProperty "foo" isBool .&& hasProperty "bazz" isString
+    $ hasProperty "foo" isBool .&& hasProperty "bazz" isString
   describe "Object schema with 3 properties"
     . testObject (arbitraryObj $ ObjGenOpts ["bar", "bazz"] ["foo"] 0 0) "3-property-no-additional-2.medea"
     $ hasOptionalProperty "foo" isNumber .&& hasProperty "bazz" isNull
+  describe "Object schema with 3 properties and additional allowed"
+    . testObject (arbitraryObj $ ObjGenOpts ["foo", "bar", "bazz"] [] 0 3) "3-property-additional-allowed-1.medea"
+    $ hasProperty "foo" isBool .&& hasProperty "bazz" isString
+  describe "Object schema with 3 properties and additional allowed"
+    . testObject (arbitraryObj $ ObjGenOpts ["bar", "bazz"] ["foo"] 0 3) "3-property-additional-allowed-2.medea"
+    $ hasOptionalProperty "foo" isNumber .&& hasProperty "bazz" isNull
   -- These tests are for objects where additional are not allowed but are still found.
+  -- The generator is such that additional properties always exist.
   describe "Object schema with 1 property and no additional allowed"
     $ testInvalidObject (arbitraryObj $ ObjGenOpts ["foo"] [] 1 3) "1-property-no-additional-1.medea"
   describe "Object schema with 1 property and no additional allowed"

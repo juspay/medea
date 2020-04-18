@@ -40,7 +40,7 @@ import Data.Functor (($>))
 import Data.Hashable (Hashable (..))
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust, fromJust)
-import Data.Medea.Analysis (TypeNode (..), ReducedSchema(..))
+import Data.Medea.Analysis (TypeNode (..), CompiledSchema(..))
 import qualified Data.HashMap.Strict as HM
 import Data.Medea.JSONType (JSONType (..), typeOf)
 import Data.Medea.Loader
@@ -55,13 +55,10 @@ import Data.Medea.ValidJSON (ValidJSONF (..))
 import qualified Data.Set as S
 import Data.Set.NonEmpty
   ( NESet,
-    deleteFindMin,
     singleton,
-    toList,
     findMin,
     member,
     dropWhileAntitone,
-    pattern IsEmpty,
     pattern IsNonEmpty,
   )
 import Data.Text (Text)
@@ -229,20 +226,19 @@ checkPrim v = do
       Nothing -> put (anySet, Nothing) >> (ObjectSchema :<) . ObjectF <$> mapM checkTypes obj
       Just parIdent -> checkObject obj parIdent
   where
-    lookupSchema ident = asks $ fromJust . M.lookup ident . reducedSpec
-    -- check if array length matches the corresponding specification
+    lookupSchema ident = asks $ fromJust . M.lookup ident . compiledSchemata
+    -- check if the array length is within the specification range.
     checkArray arr parIdent = do
-      (minLen, maxLen) <- reducedArray <$> lookupSchema parIdent
-      when (invalidLen (<) minLen || invalidLen (>) maxLen) $
+      scm <- lookupSchema parIdent
+      let arrLen = V.length arr
+      when (maybe False (arrLen <) (fromIntegral <$> minListLen scm)
+         || maybe False (arrLen >) (fromIntegral <$> maxListLen scm)) $
         throwError . OutOfBoundsArrayLength (textify parIdent) . Array $ arr
-      where
-        invalidLen _ Nothing = False
-        invalidLen f (Just len) = V.length arr `f` fromIntegral len
     -- check if object properties satisfy the corresponding specification.
     checkObject obj parIdent = do
-      (propsSpec, additionalAllowed) <- reducedObject <$> lookupSchema parIdent
+      scm <- lookupSchema parIdent
       valsAndTypes <- fmap fromJust . HM.filter isJust
-        <$> mergeHashMapsWithKeyM (combine additionalAllowed) propsSpec obj
+        <$> mergeHashMapsWithKeyM (combine $ additionalProps scm) (props scm) obj
       checkedObj <- mapM (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
       pure $ ObjectSchema :< ObjectF checkedObj
         where

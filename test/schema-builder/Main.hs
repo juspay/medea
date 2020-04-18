@@ -8,7 +8,6 @@ import Test.Hspec
     hspec,
     it,
     runIO,
-    shouldNotSatisfy,
     shouldSatisfy,
   )
 import TestM.Util (listMedeaFiles)

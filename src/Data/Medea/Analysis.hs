@@ -52,15 +52,13 @@ data TypeNode
   | CustomNode Identifier
   deriving (Eq, Ord, Show)
 
-data ReducedSchema = ReducedSchema {
-  reducedTypes :: ReducedTypeSpec,
-  reducedArray :: ReducedArraySpec,
-  reducedObject :: ReducedObjectSpec
-}
-  deriving (Show)
-type ReducedTypeSpec = V.Vector TypeNode
-type ReducedArraySpec = (Maybe Natural, Maybe Natural)
-type ReducedObjectSpec = (HM.HashMap Text (TypeNode, Bool), Bool)
+data CompiledSchema = CompiledSchema {
+  typesAs :: V.Vector TypeNode,
+  minListLen :: Maybe Natural,
+  maxListLen :: Maybe Natural,
+  props :: HM.HashMap Text (TypeNode, Bool),
+  additionalProps :: Bool
+} deriving (Show)
 
 intoAcyclic ::
   (MonadError AnalysisError m) =>
@@ -70,18 +68,18 @@ intoAcyclic = maybe (throwError TypeRelationIsCyclic) pure . toAcyclic . Cyclic.
 
 intoEdges ::
   (MonadError AnalysisError m) =>
-  M.Map Identifier ReducedSchema ->
-  ReducedSchema ->
+  M.Map Identifier CompiledSchema ->
+  CompiledSchema ->
   m [(TypeNode, TypeNode)]
-intoEdges m redScm =
-  evalStateT (go [] redScm startNode <* checkUnusedSchema <* checkUndefinedPropSchema) S.empty
+intoEdges m compiledScm =
+  evalStateT (go [] compiledScm startNode <* checkUnusedSchema <* checkUndefinedPropSchema) S.empty
   where
     startNode = CustomNode startIdentifier
     checkUnusedSchema = do
       reachableSchemas <- gets S.size 
       when (reachableSchemas < M.size m) $ throwError UnreachableSchemata
     checkUndefinedPropSchema =
-      case filter isUndefinedNode . map fst . HM.elems . fst . reducedObject $ redScm of
+      case filter isUndefinedNode . map fst . HM.elems . props $ compiledScm of
         (CustomNode ident):_ -> throwError $ DanglingTypeRefProp ident
         _ -> pure ()
       where
@@ -93,22 +91,19 @@ intoEdges m redScm =
       then pure acc
       else do
         modify (S.insert node)
-        traverseRefs acc node $ V.toList . reducedTypes $ scm
-    traverseRefs acc node [] = pure $ (node, AnyNode) : acc
+        traverseRefs acc node $ V.toList . typesAs $ scm
     traverseRefs acc node refs =
       (acc <>) . concat <$> traverse (resolveLinks node) refs
-    -- NOTE: t can not be AnyNode
     resolveLinks u t = case t of
-      PrimitiveNode _  -> pure . pure $ (u,t)
       CustomNode ident -> case M.lookup ident m of
         Nothing -> throwError . DanglingTypeReference $ ident
         Just scm -> (:) <$> pure (u, t) <*> go [] scm t
-      AnyNode -> error "Unexpected type node"
+      _  -> pure . pure $ (u,t)
 
 intoMap ::
   (MonadError AnalysisError m) =>
   Schemata.Specification ->
-  m (M.Map Identifier ReducedSchema)
+  m (M.Map Identifier CompiledSchema)
 intoMap (Schemata.Specification v) = foldM go M.empty v
   where
     go acc spec = M.alterF (checkedInsert spec) (Schema.name spec) acc
@@ -117,22 +112,26 @@ intoMap (Schemata.Specification v) = foldM go M.empty v
         when (isReserved ident && (not . isStartIdent) ident)
           $ throwError . ReservedDefined
           $ ident
-        Just <$> reduceSchema spec
+        Just <$> compileSchema spec
       Just _ -> throwError . DuplicateSchemaName $ ident
       where
         ident = Schema.name spec
 
-reduceSchema ::
+compileSchema ::
   (MonadError AnalysisError m) =>
   Schema.Specification ->
-  m ReducedSchema
-reduceSchema scm = do
-  let reducedArraySpec = coerce (minLength arraySpec, maxLength arraySpec)
-      typeNodes = fmap (identToNode . Just) types
-  reducedProps <- foldM go HM.empty (properties objSpec)
-  when (uncurry (>) reducedArraySpec) $
+  m CompiledSchema
+compileSchema scm = do
+  when (minLength arraySpec > maxLength arraySpec) $
     throwError $ MinMoreThanMax schemaName
-  pure $ ReducedSchema typeNodes reducedArraySpec (reducedProps, additionalAllowed objSpec)
+  propMap <- foldM go HM.empty (properties objSpec)
+  pure $ CompiledSchema {
+           typesAs         = defaultToAny $ fmap (identToNode . Just) types,
+           minListLen      = coerce $ minLength arraySpec,
+           maxListLen      = coerce $ maxLength arraySpec,
+           props           = propMap,
+           additionalProps = additionalAllowed objSpec
+         }
     where
       Schema.Specification schemaName (Type.Specification types) arraySpec objSpec
         = scm
@@ -140,6 +139,8 @@ reduceSchema scm = do
       checkedInsert prop = \case
         Nothing -> pure . Just $ (identToNode (propSchema prop), propOptional prop)
         Just _  -> throwError $ DuplicatePropName schemaName (propName prop)
+      defaultToAny vec | V.null vec = V.singleton AnyNode
+                       | otherwise  = vec
 
 identToNode :: Maybe Identifier -> TypeNode
 identToNode ident = case ident of
@@ -148,8 +149,8 @@ identToNode ident = case ident of
 
 checkStartSchema ::
   (MonadError AnalysisError m) =>
-  M.Map Identifier ReducedSchema ->
-  m ReducedSchema
+  M.Map Identifier CompiledSchema ->
+  m CompiledSchema
 checkStartSchema m = case M.lookup startIdentifier m of
   Nothing -> throwError NoStartSchema
   Just scm -> pure scm

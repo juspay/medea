@@ -108,11 +108,7 @@ intoMap (Schemata.Specification v) = foldM go M.empty v
   where
     go acc spec = M.alterF (checkedInsert spec) (Schema.name spec) acc
     checkedInsert spec = \case
-      Nothing -> do
-        when (isReserved ident && (not . isStartIdent) ident)
-          $ throwError . ReservedDefined
-          $ ident
-        Just <$> compileSchema spec
+      Nothing -> Just <$> compileSchema spec
       Just _ -> throwError . DuplicateSchemaName $ ident
       where
         ident = Schema.name spec
@@ -122,6 +118,9 @@ compileSchema ::
   Schema.Specification ->
   m CompiledSchema
 compileSchema scm = do
+  when (isReserved schemaName && (not . isStartIdent) schemaName)
+    $ throwError . ReservedDefined
+    $ schemaName 
   when (minLength arraySpec > maxLength arraySpec) $
     throwError $ MinMoreThanMax schemaName
   propMap <- foldM go HM.empty (properties objSpec)

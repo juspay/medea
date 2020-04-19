@@ -30,7 +30,7 @@ import Control.Monad.Except (MonadError (..))
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader (MonadReader, asks, runReaderT)
 import Control.Monad.State.Strict (MonadState (..), evalStateT, gets)
-import Data.Aeson (Value (..), decode)
+import Data.Aeson (Array, Object, Value (..), decode)
 import qualified Data.ByteString.Lazy as BS
 import Data.ByteString.Lazy (ByteString)
 import Data.Coerce (coerce)
@@ -224,7 +224,7 @@ checkPrim v = do
     Array arr -> do
       case par of
         Nothing -> pure ()
-        Just parIdent -> checkArray arr parIdent
+        Just parIdent -> checkArrayBounds arr parIdent
         -- We currently don't check array contents,
         -- therefore we punt to AnyNode before we carry on.
       put (anySet, Nothing)
@@ -233,49 +233,60 @@ checkPrim v = do
       -- Fast Path (no object spec)
       Nothing -> put (anySet, Nothing) >> (ObjectSchema :<) . ObjectF <$> mapM checkTypes obj
       Just parIdent -> checkObject obj parIdent
-  where
-    -- check if the array length is within the specification range.
-    checkArray arr parIdent = do
-      scm <- asks $ lookupSchema parIdent
-      let arrLen = fromIntegral $ V.length arr
-      when (maybe False (arrLen <) (minArrayLen scm)
-        || maybe False (arrLen >) (maxArrayLen scm)) $
-        throwError . OutOfBoundsArrayLength (textify parIdent) . Array $ arr
-    -- check if object properties satisfy the corresponding specification.
-    checkObject obj parIdent = do
-      scm <- asks $ lookupSchema parIdent
-      valsAndTypes <- fmap fromJust . HM.filter isJust
-        <$> mergeHashMapsWithKeyM (combine $ additionalProps scm) (props scm) obj
-      checkedObj <- mapM (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
-      pure $ ObjectSchema :< ObjectF checkedObj
+
+-- check if the array length is within the specification range.
+checkArrayBounds
+  :: (Alternative m, MonadReader Schema m, MonadError ValidationError m)
+  => Array
+  -> Identifier
+  -> m ()
+checkArrayBounds arr parIdent = do
+  scm <- asks $ lookupSchema parIdent
+  let arrLen = fromIntegral $ V.length arr
+  when (maybe False (arrLen <) (minArrayLen scm)
+    || maybe False (arrLen >) (maxArrayLen scm)) $
+    throwError . OutOfBoundsArrayLength (textify parIdent) . Array $ arr
+
+-- check if object properties satisfy the corresponding specification.
+checkObject
+  :: (Alternative m, MonadReader Schema m, MonadState (NESet TypeNode, Maybe Identifier) m, MonadError ValidationError m)
+  => Object
+  -> Identifier
+  -> m (Cofree ValidJSONF SchemaInformation)
+checkObject obj parIdent = do
+  scm <- asks $ lookupSchema parIdent
+  valsAndTypes <- fmap fromJust . HM.filter isJust
+    <$> mergeHashMapsWithKeyM (combine $ additionalProps scm) (props scm) obj
+  checkedObj <- mapM (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
+  pure $ ObjectSchema :< ObjectF checkedObj
+    where
+      -- combine is used to merge propertySpec with the actual object's property in a monadic context.
+      -- It returns Just (value, the type it must match against) inside the monadic context.
+      -- Returns Nothing when the property must be removed.
+      -- 1. Only property spec found
+      combine _ propName (This (_, isOptional)) = do
+        unless isOptional $
+          throwError . RequiredPropertyIsMissing (textify parIdent) $ propName
+        pure Nothing
+      -- 2. No property spec found i.e. this is an additional property
+      combine additionalAllowed propName (That val) = do
+        unless additionalAllowed $
+          throwError . AdditionalPropFoundButBanned (textify parIdent) $ propName
+        pure $ Just (val, AnyNode)
+      -- 3. We found a property spec to match against.
+      combine _ _ (These (typeNode, _) val) =
+        pure $ Just (val, typeNode)
+      mergeHashMapsWithKeyM
+        :: (Monad m, Eq k, Hashable k)
+        => (k -> These v1 v2 -> m v3)
+        -> HM.HashMap k v1 -> HM.HashMap k v2 -> m (HM.HashMap k v3)
+      mergeHashMapsWithKeyM f hm1 hm2 = mapM (uncurry f) $ pairKeyVal merged
         where
-          -- combine is used to merge propertySpec with the actual object's property in a monadic context.
-          -- It returns Just (value, the type it must match against) inside the monadic context.
-          -- Returns Nothing when the property must be removed.
-          -- 1. Only property spec found
-          combine _ propName (This (_, isOptional)) = do
-            unless isOptional $
-              throwError . RequiredPropertyIsMissing (textify parIdent) $ propName
-            pure Nothing
-          -- 2. No property spec found i.e. this is an additional property
-          combine additionalAllowed propName (That val) = do
-            unless additionalAllowed $
-              throwError . AdditionalPropFoundButBanned (textify parIdent) $ propName
-            pure $ Just (val, AnyNode)
-          -- 3. We found a property spec to match against.
-          combine _ _ (These (typeNode, _) val) =
-            pure $ Just (val, typeNode)
-          mergeHashMapsWithKeyM
-            :: (Monad m, Eq k, Hashable k)
-            => (k -> These v1 v2 -> m v3)
-            -> HM.HashMap k v1 -> HM.HashMap k v2 -> m (HM.HashMap k v3)
-          mergeHashMapsWithKeyM f hm1 hm2 = mapM (uncurry f) $ pairKeyVal merged
-            where
-              merged = HM.unionWith joinThisThat (This <$> hm1) (That <$> hm2)
-              pairKeyVal :: HM.HashMap k v -> HM.HashMap k (k, v)
-              pairKeyVal = HM.mapWithKey (,)
-              joinThisThat (This x) (That y) = These x y
-              joinThisThat _         _       = error "These cases are not possible"
+          merged = HM.unionWith joinThisThat (This <$> hm1) (That <$> hm2)
+          pairKeyVal :: HM.HashMap k v -> HM.HashMap k (k, v)
+          pairKeyVal = HM.mapWithKey (,)
+          joinThisThat (This x) (That y) = These x y
+          joinThisThat _         _       = error "These cases are not possible"
 
 -- checkCustoms removes all non custom nodes from the typeNode set and
 -- checks the Value against each until one succeeds.

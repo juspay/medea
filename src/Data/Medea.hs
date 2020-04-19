@@ -176,7 +176,7 @@ validateFromHandle scm h = do
 
 -- Helpers
 
--- We have 4 different cases:
+-- We have 3 different cases:
 -- 1. If we are checking against AnyNode, we ALWAYS succeed.
 -- 2. If we are checking against PrimitiveNode, we can match with EXACTLY ONE
 --    kind of PrimitiveNode.

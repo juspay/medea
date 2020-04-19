@@ -11,6 +11,7 @@ import Control.Monad (foldM, when)
 import Control.Monad.Except (MonadError (..))
 import Data.Coerce (coerce)
 import qualified Data.HashMap.Strict as HM
+import qualified Data.List.NonEmpty as NEList
 import Data.Maybe (isNothing, mapMaybe)
 import qualified Data.Map.Strict as M
 import Data.Medea.JSONType (JSONType (..))
@@ -33,6 +34,7 @@ import Data.Medea.Parser.Spec.Array (minLength, maxLength)
 import Data.Medea.Parser.Spec.Object (properties, additionalAllowed)
 import Data.Medea.Parser.Spec.Property (propSchema, propName, propOptional)
 import qualified Data.Set as S
+import qualified Data.Set.NonEmpty as NESet
 import Data.Text (Text)
 import qualified Data.Vector as V
 
@@ -55,7 +57,7 @@ data TypeNode
 
 data CompiledSchema = CompiledSchema {
   schemaNode :: TypeNode,
-  typesAs :: S.Set TypeNode,
+  typesAs :: NESet.NESet TypeNode,
   minListLen :: Maybe Natural,
   maxListLen :: Maybe Natural,
   props :: HM.HashMap Text (TypeNode, Bool),
@@ -71,7 +73,7 @@ checkAcyclic m = when (isNothing . toAcyclic . getTypesAsGraph $ m)
     $ throwError TypeRelationIsCyclic
   where
     getTypesAsGraph = Cyclic.edges . concatMap intoTypesAsEdges . M.elems
-    intoTypesAsEdges scm = fmap (schemaNode scm,) . S.toList . typesAs $ scm
+    intoTypesAsEdges scm = fmap (schemaNode scm,) . NEList.toList . NESet.toList . typesAs $ scm
 
 compileSchemata ::
   (MonadError AnalysisError m) =>
@@ -106,7 +108,7 @@ compileSchema scm = do
   propMap <- foldM go HM.empty (properties objSpec)
   pure $ CompiledSchema {
       schemaNode      = identToNode . Just $ schemaName,
-      typesAs         = defaultToAny . S.fromList . V.toList . fmap (identToNode . Just) $ types,
+      typesAs         = NESet.fromList . defaultToAny . V.toList . fmap (identToNode . Just) $ types,
       minListLen      = coerce $ minLength arraySpec,
       maxListLen      = coerce $ maxLength arraySpec,
       props           = propMap,
@@ -120,9 +122,10 @@ compileSchema scm = do
       checkedInsert prop = \case
         Nothing -> pure . Just $ (identToNode (propSchema prop), propOptional prop)
         Just _  -> throwError $ DuplicatePropName schemaName (propName prop)
-      defaultToAny nodes 
-        | S.null nodes = S.singleton AnyNode
-        | otherwise    = nodes 
+      defaultToAny :: [TypeNode] -> NEList.NonEmpty TypeNode
+      defaultToAny xs = case NEList.nonEmpty xs of
+        Nothing  -> ((NEList.:|) AnyNode [])
+        Just xs' -> xs'
 
 checkStartSchema ::
   (MonadError AnalysisError m) =>
@@ -170,7 +173,7 @@ identToNode ident = case ident of
   Just t -> maybe (CustomNode t) (PrimitiveNode . typeOf) $ tryPrimType t
 
 getTypeRefs :: CompiledSchema -> [TypeNode]
-getTypeRefs = S.toList . typesAs
+getTypeRefs = NEList.toList . NESet.toList . typesAs
 
 getPropertyTypeRefs :: CompiledSchema -> [TypeNode]
 getPropertyTypeRefs = fmap fst . HM.elems . props

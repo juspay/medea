@@ -58,8 +58,7 @@ import Data.Set.NonEmpty
     singleton,
     findMin,
     member,
-    dropWhileAntitone,
-    pattern IsNonEmpty,
+    dropWhileAntitone
   )
 import Data.Text (Text)
 import Data.These (These (..))
@@ -294,11 +293,8 @@ checkCustoms v = do
     -- Check value against successfors of a custom node.
     checkCustom (CustomNode ident)= do
       neighbourhood <- asks $ typesAs . lookupSchema ident
-      case neighbourhood of
-        IsNonEmpty ne -> do
-          put (ne, Just ident)
-          ($> (UserDefined . textify $ ident)) <$> checkTypes v
-        _ -> throwError $ ImplementationError "Unreachable code: A CustomNode must have at least one successor."
+      put (neighbourhood, Just ident)
+      ($> (UserDefined . textify $ ident)) <$> checkTypes v
     checkCustom _ = throwError $ ImplementationError "Unreachable code: All these nodes MUST be custom."
 
 anySet :: NESet TypeNode

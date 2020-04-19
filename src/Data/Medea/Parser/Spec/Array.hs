@@ -27,7 +27,7 @@ parseSpecification = do
      _ <- parseLine 4 $ parseReservedChunk "length"
      spec <- try permute
      case spec of
-       Specification Nothing Nothing -> customFailure EmptyLengthSpec
+       Specification Nothing Nothing -> customFailure EmptyLengthArraySpec
        _                             -> pure spec
   where
     permute = runPermutation $ Specification

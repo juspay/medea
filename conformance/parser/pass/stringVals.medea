@@ -1,0 +1,6 @@
+$schema $start
+    $type
+        $string
+    $string_values
+        "bar"
+        "baz"

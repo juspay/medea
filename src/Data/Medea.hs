@@ -55,13 +55,10 @@ import Data.Medea.ValidJSON (ValidJSONF (..))
 import qualified Data.Set as S
 import Data.Set.NonEmpty
   ( NESet,
-    deleteFindMin,
     singleton,
-    toList,
     findMin,
     member,
     dropWhileAntitone,
-    pattern IsEmpty,
     pattern IsNonEmpty,
   )
 import Data.Text (Text)
@@ -132,7 +129,7 @@ data ValidationError
   | AdditionalPropFoundButBanned Text Text
   | RequiredPropertyIsMissing Text Text
   | OutOfBoundsArrayLength Text Value
-  deriving (Eq)
+  deriving (Eq, Show)
 
 instance Semigroup ValidationError where
   EmptyError <> x = x
@@ -215,7 +212,16 @@ checkPrim v = do
     Null -> pure $ NullSchema :< NullF
     Bool b -> pure $ BooleanSchema :< BooleanF b
     Number n -> pure $ NumberSchema :< NumberF n
-    String s -> pure $ StringSchema :< StringF s
+    String s -> do 
+      case par of
+        -- if we are checking against a dependant string, we match against the supplied values
+        Nothing -> pure $ StringSchema :< StringF s
+        Just parIdent -> do
+          scm <- lookupSchema parIdent
+          let validVals = reducedStringVals scm
+          if s `V.elem` validVals || length validVals == 0
+             then pure $ StringSchema :< StringF s
+             else throwError $ NotOneOfOptions v
     Array arr -> do
       case par of
         Nothing -> pure ()

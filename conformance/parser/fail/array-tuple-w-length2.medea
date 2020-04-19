@@ -1,0 +1,6 @@
+$schema $start
+    $length
+        $minimum 1
+    $tuple
+        $string
+        $number

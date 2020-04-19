@@ -29,7 +29,7 @@ import qualified Data.Medea.Parser.Spec.Schema as Schema
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
 import qualified Data.Medea.Parser.Spec.Type as Type
 import qualified Data.Medea.Parser.Spec.String as String
-import Data.Medea.Parser.Spec.Array (minLength, maxLength)
+import Data.Medea.Parser.Spec.Array (minLength, maxLength, elementType, tupleSpec)
 import Data.Medea.Parser.Spec.Object (properties, additionalAllowed)
 import Data.Medea.Parser.Spec.Property (propSchema, propName, propOptional)
 import qualified Data.Set as S
@@ -62,7 +62,7 @@ data ReducedSchema = ReducedSchema {
   deriving (Show)
 type ReducedTypeSpec = V.Vector TypeNode
 type ReducedStringValSpec = V.Vector Text
-type ReducedArraySpec = (Maybe Natural, Maybe Natural)
+type ReducedArraySpec = (Maybe Natural, Maybe Natural, Maybe Identifier, Maybe [Identifier])
 type ReducedObjectSpec = (HM.HashMap Text (TypeNode, Bool), Bool)
 
 intoAcyclic ::
@@ -130,11 +130,14 @@ reduceSchema ::
   Schema.Specification ->
   m ReducedSchema
 reduceSchema scm = do
-  let reducedArraySpec = coerce (minLength arraySpec, maxLength arraySpec)
-      typeNodes = fmap (identToNode . Just) types
-      reducedStringValsSpec = String.toReducedSpec $ stringValsSpec 
+  let
+    minL = minLength arraySpec
+    maxL = maxLength arraySpec 
+    reducedArraySpec = ( minL, maxL, elementType arraySpec, tupleSpec arraySpec)
+    typeNodes = fmap (identToNode . Just) types
+    reducedStringValsSpec = String.toReducedSpec $ stringValsSpec 
   reducedProps <- foldM go HM.empty (properties objSpec)
-  when (uncurry (>) reducedArraySpec) $
+  when (minL > maxL) $
     throwError $ MinMoreThanMax schemaName
   pure $ ReducedSchema typeNodes reducedStringValsSpec reducedArraySpec (reducedProps, additionalAllowed objSpec)
     where

@@ -1,0 +1,4 @@
+$schema foo
+    $tuple
+        $string
+        $number

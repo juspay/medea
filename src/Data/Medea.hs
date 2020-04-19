@@ -238,7 +238,7 @@ checkPrim v = do
     lookupSchema ident = asks $ fromJust . M.lookup ident . reducedSpec
     -- check if array length matches the corresponding specification
     checkArray arr parIdent = do
-      (minLen, maxLen) <- reducedArray <$> lookupSchema parIdent
+      (minLen, maxLen, elemType, tupleSpec) <- reducedArray <$> lookupSchema parIdent
       when (invalidLen (<) minLen || invalidLen (>) maxLen) $
         throwError . OutOfBoundsArrayLength (textify parIdent) . Array $ arr
       where

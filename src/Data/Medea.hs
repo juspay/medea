@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Data.Medea
   ( SchemaInformation (..),
@@ -129,6 +130,7 @@ data ValidationError
   | AdditionalPropFoundButBanned Text Text
   | RequiredPropertyIsMissing Text Text
   | OutOfBoundsArrayLength Text Value
+  | ImplementationError Text
   deriving (Eq)
 
 instance Semigroup ValidationError where
@@ -290,8 +292,8 @@ checkCustoms v = do
         IsNonEmpty ne -> do
           put (ne, Just ident)
           ($> (UserDefined . textify $ ident)) <$> checkTypes v
-        _ -> error "Unreachable code: A CustomNode must have at least one successor."
-    checkCustom _ = error "Unreachable code: All these nodes MUST be custom."
+        _ -> throwError $ ImplementationError "Unreachable code: A CustomNode must have at least one successor."
+    checkCustom _ = throwError $ ImplementationError "Unreachable code: All these nodes MUST be custom."
 
 anySet :: NESet TypeNode
 anySet = singleton AnyNode

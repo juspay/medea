@@ -39,6 +39,9 @@ main = hspec $ do
   describe "String/null schema" . testSingular "nullable-string.medea" "string/null" $ isNull .|| isString
   describe "Array/null schema" . testSingular "nullable-array.medea" "array/null" $ isNull .|| isArray
   describe "Object/null schema" . testSingular "nullable-object.medea" "object/null" $ isNull .|| isObject
+  describe "String with Values Schema" $ do 
+    testStringVals "stringVals.medea" ["bar", "baz"]
+    testStringVals "stringVals2.medea" [ "accountant", "barber", "bishop", "baker" ]
   -- Tests for object property checks.
   describe "Object schema with 1 property"
     . testObject (arbitraryObj $ ObjGenOpts ["foo"] [] 0 0) "1-property-no-additional-1.medea"
@@ -60,14 +63,18 @@ main = hspec $ do
     $ hasOptionalProperty "foo" isObject
   describe "Object schema with 3 properties"
     . testObject (arbitraryObj $ ObjGenOpts ["foo", "bar", "bazz"] [] 0 0) "3-property-no-additional-1.medea"
-    $ hasOptionalProperty "foo" isBool .&& hasProperty "bazz" isString
+    $ hasProperty "foo" isBool .&& hasProperty "bazz" isString
   describe "Object schema with 3 properties"
     . testObject (arbitraryObj $ ObjGenOpts ["bar", "bazz"] ["foo"] 0 0) "3-property-no-additional-2.medea"
     $ hasOptionalProperty "foo" isNumber .&& hasProperty "bazz" isNull
-  describe "String with Values Schema" $ do 
-    testStringVals "stringVals.medea" ["bar", "baz"]
-    testStringVals "stringVals2.medea" [ "accountant", "barber", "bishop", "baker" ]
+  describe "Object schema with 3 properties and additional allowed"
+    . testObject (arbitraryObj $ ObjGenOpts ["foo", "bar", "bazz"] [] 0 3) "3-property-additional-allowed-1.medea"
+    $ hasProperty "foo" isBool .&& hasProperty "bazz" isString
+  describe "Object schema with 3 properties and additional allowed"
+    . testObject (arbitraryObj $ ObjGenOpts ["bar", "bazz"] ["foo"] 0 3) "3-property-additional-allowed-2.medea"
+    $ hasOptionalProperty "foo" isNumber .&& hasProperty "bazz" isNull
   -- These tests are for objects where additional are not allowed but are still found.
+  -- The generator is such that additional properties always exist.
   describe "Object schema with 1 property and no additional allowed"
     $ testInvalidObject (arbitraryObj $ ObjGenOpts ["foo"] [] 1 3) "1-property-no-additional-1.medea"
   describe "Object schema with 1 property and no additional allowed"

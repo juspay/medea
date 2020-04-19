@@ -21,7 +21,8 @@ import Data.HashMap.Strict (lookup)
 import Data.Text (Text)
 import Test.Hspec (Spec, describe, hspec, it, runIO, shouldNotSatisfy)
 import Test.Hspec.Core.Spec (SpecM)
-import Test.QuickCheck ((==>), forAll, property, Gen, Property)
+import Test.QuickCheck ((==>), arbitrary, forAll, property, quickCheck, Gen, Property)
+import qualified Test.QuickCheck.Gen as Gen
 import TestM (isParseError, isSchemaError, runTestM)
 
 main :: IO ()
@@ -38,6 +39,9 @@ main = hspec $ do
   describe "String/null schema" . testSingular "nullable-string.medea" "string/null" $ isNull .|| isString
   describe "Array/null schema" . testSingular "nullable-array.medea" "array/null" $ isNull .|| isArray
   describe "Object/null schema" . testSingular "nullable-object.medea" "object/null" $ isNull .|| isObject
+  describe "String with Values Schema" $ do 
+    testStringVals "stringVals.medea" ["bar", "baz"]
+    testStringVals "stringVals2.medea" [ "accountant", "barber", "bishop", "baker" ]
   -- Tests for object property checks.
   describe "Object schema with 1 property"
     . testObject (arbitraryObj $ ObjGenOpts ["foo"] [] 0 0) "1-property-no-additional-1.medea"
@@ -135,6 +139,18 @@ hasProperty _ _ _ = False
 hasOptionalProperty :: Text -> (Value -> Bool) -> Value -> Bool
 hasOptionalProperty propName p (Object obj) = maybe True p $ lookup propName obj
 hasOptionalProperty _ _ _ = False
+
+testStringVals :: FilePath -> [ String ] -> Spec
+testStringVals fp validStrings = do
+  scm <- loadAndParse $ prependTestDir $ fp
+  it ("Should validate " ++ "string is one of " ++ show validStrings ++ "s: " ++ fp) (property . forAll genString . validationIsCorrect $ scm)
+  
+  it ("Shouldn't validate " ++ "string is one of " ++ show validStrings ++ "s: " ++ fp) (property . forAll genString . invalidationIsCorrect $ scm)
+  where 
+    validationIsCorrect scm s = s `elem` validStrings ==> isRight . runExcept . validate scm . encode $ s 
+    invalidationIsCorrect scm s  = not (s `elem` validStrings) ==> isLeft . runExcept . validate scm . encode $ s
+    genString :: Gen.Gen String
+    genString = Gen.oneof [ (Gen.elements validStrings), arbitrary]
 
 loadAndParse :: FilePath -> SpecM () Schema
 loadAndParse fp = do

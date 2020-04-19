@@ -28,6 +28,7 @@ import Data.Medea.Parser.Primitive
 import qualified Data.Medea.Parser.Spec.Schema as Schema
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
 import qualified Data.Medea.Parser.Spec.Type as Type
+import qualified Data.Medea.Parser.Spec.String as String
 import Data.Medea.Parser.Spec.Array (minLength, maxLength)
 import Data.Medea.Parser.Spec.Object (properties, additionalAllowed)
 import Data.Medea.Parser.Spec.Property (propSchema, propName, propOptional)
@@ -58,7 +59,8 @@ data CompiledSchema = CompiledSchema {
   minListLen :: Maybe Natural,
   maxListLen :: Maybe Natural,
   props :: HM.HashMap Text (TypeNode, Bool),
-  additionalProps :: Bool
+  additionalProps :: Bool,
+  stringVals :: V.Vector Text
 } deriving (Show)
 
 checkAcyclic ::
@@ -108,10 +110,11 @@ compileSchema scm = do
       minListLen      = coerce $ minLength arraySpec,
       maxListLen      = coerce $ maxLength arraySpec,
       props           = propMap,
-      additionalProps = additionalAllowed objSpec
+      additionalProps = additionalAllowed objSpec,
+      stringVals      = String.toReducedSpec stringValsSpec
     }
     where
-      Schema.Specification schemaName (Type.Specification types) arraySpec objSpec
+      Schema.Specification schemaName (Type.Specification types)  stringValsSpec arraySpec objSpec
         = scm
       go acc prop = HM.alterF (checkedInsert prop) (coerce $ propName prop) acc
       checkedInsert prop = \case

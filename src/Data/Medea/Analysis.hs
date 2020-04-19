@@ -5,7 +5,7 @@
 module Data.Medea.Analysis where
 
 import Prelude
-import Algebra.Graph.Acyclic.AdjacencyMap (AdjacencyMap, toAcyclic)
+import Algebra.Graph.Acyclic.AdjacencyMap (toAcyclic)
 import qualified Algebra.Graph.AdjacencyMap as Cyclic
 import Control.Monad (foldM, when)
 import Control.Monad.Except (MonadError (..))
@@ -54,21 +54,22 @@ data TypeNode
 
 data CompiledSchema = CompiledSchema {
   schemaNode :: TypeNode,
-  typesAs :: V.Vector TypeNode,
+  typesAs :: S.Set TypeNode,
   minListLen :: Maybe Natural,
   maxListLen :: Maybe Natural,
   props :: HM.HashMap Text (TypeNode, Bool),
   additionalProps :: Bool
 } deriving (Show)
 
-intoAcyclic ::
+checkAcyclic ::
   (MonadError AnalysisError m) =>
   M.Map Identifier CompiledSchema ->
-  m (AdjacencyMap TypeNode)
-intoAcyclic = maybe (throwError TypeRelationIsCyclic) pure . toAcyclic . getTypesAsGraph
+  m ()
+checkAcyclic m = when (isNothing . toAcyclic . getTypesAsGraph $ m)
+    $ throwError TypeRelationIsCyclic
   where
     getTypesAsGraph = Cyclic.edges . concatMap intoTypesAsEdges . M.elems
-    intoTypesAsEdges scm = fmap (schemaNode scm,) . V.toList . typesAs $ scm
+    intoTypesAsEdges scm = fmap (schemaNode scm,) . S.toList . typesAs $ scm
 
 compileSchemata ::
   (MonadError AnalysisError m) =>
@@ -80,6 +81,7 @@ compileSchemata (Schemata.Specification v) = do
   checkDanglingReferences getTypeRefs DanglingTypeReference m
   checkDanglingReferences getPropertyTypeRefs DanglingTypeRefProp m
   checkUnusedSchemata m
+  checkAcyclic m
   pure m
   where
     go acc spec = M.alterF (checkedInsert spec) (Schema.name spec) acc
@@ -102,7 +104,7 @@ compileSchema scm = do
   propMap <- foldM go HM.empty (properties objSpec)
   pure $ CompiledSchema {
       schemaNode      = identToNode . Just $ schemaName,
-      typesAs         = defaultToAny $ fmap (identToNode . Just) types,
+      typesAs         = defaultToAny . S.fromList . V.toList . fmap (identToNode . Just) $ types,
       minListLen      = coerce $ minLength arraySpec,
       maxListLen      = coerce $ maxLength arraySpec,
       props           = propMap,
@@ -115,8 +117,9 @@ compileSchema scm = do
       checkedInsert prop = \case
         Nothing -> pure . Just $ (identToNode (propSchema prop), propOptional prop)
         Just _  -> throwError $ DuplicatePropName schemaName (propName prop)
-      defaultToAny vec | V.null vec = V.singleton AnyNode
-                       | otherwise  = vec
+      defaultToAny nodes 
+        | S.null nodes = S.singleton AnyNode
+        | otherwise    = nodes 
 
 checkStartSchema ::
   (MonadError AnalysisError m) =>
@@ -164,7 +167,7 @@ identToNode ident = case ident of
   Just t -> maybe (CustomNode t) (PrimitiveNode . typeOf) $ tryPrimType t
 
 getTypeRefs :: CompiledSchema -> [TypeNode]
-getTypeRefs = V.toList . typesAs
+getTypeRefs = S.toList . typesAs
 
 getPropertyTypeRefs :: CompiledSchema -> [TypeNode]
 getPropertyTypeRefs = fmap fst . HM.elems . props

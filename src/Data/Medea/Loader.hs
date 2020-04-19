@@ -8,7 +8,6 @@ import Data.ByteString (ByteString, hGetContents, readFile)
 import qualified Data.List.NonEmpty as NE
 import Data.Medea.Analysis
   ( AnalysisError (..),
-    intoAcyclic,
     compileSchemata
   )
 import Data.Medea.Parser.Primitive (toText, unwrap)
@@ -111,7 +110,7 @@ analyze ::
   (MonadError LoaderError m) =>
   Schemata.Specification ->
   m Schema
-analyze scm = case runExcept go of
+analyze scm = case runExcept $ compileSchemata scm of
   Left (DuplicateSchemaName ident) -> 
     throwError $ MultipleSchemaDefinition (toText ident)
   Left NoStartSchema -> throwError StartSchemaMissing
@@ -128,9 +127,4 @@ analyze scm = case runExcept go of
     throwError $ MinimumLengthGreaterThanMaximum (toText ident)
   Left (DuplicatePropName ident prop) -> throwError $
     MultiplePropSchemaDefinition (toText ident) (unwrap prop)
-  Right g -> pure g
-  where
-    go = do
-      m <- compileSchemata scm
-      tg <- intoAcyclic m
-      pure $ Schema tg m
+  Right g -> pure . Schema $ g

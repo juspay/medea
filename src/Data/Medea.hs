@@ -22,7 +22,6 @@ module Data.Medea
   )
 where
 
-import Algebra.Graph.Acyclic.AdjacencyMap (postSet)
 import Control.Applicative (Alternative, (<|>))
 import Control.Comonad.Cofree (Cofree (..))
 import Control.DeepSeq (NFData (..))
@@ -228,17 +227,16 @@ checkPrim v = do
       Nothing -> put (anySet, Nothing) >> (ObjectSchema :<) . ObjectF <$> mapM checkTypes obj
       Just parIdent -> checkObject obj parIdent
   where
-    lookupSchema ident = asks $ fromJust . M.lookup ident . compiledSchemata
     -- check if the array length is within the specification range.
     checkArray arr parIdent = do
-      scm <- lookupSchema parIdent
+      scm <- asks $ lookupSchema parIdent
       let arrLen = V.length arr
       when (maybe False (arrLen <) (fromIntegral <$> minListLen scm)
          || maybe False (arrLen >) (fromIntegral <$> maxListLen scm)) $
         throwError . OutOfBoundsArrayLength (textify parIdent) . Array $ arr
     -- check if object properties satisfy the corresponding specification.
     checkObject obj parIdent = do
-      scm <- lookupSchema parIdent
+      scm <- asks $ lookupSchema parIdent
       valsAndTypes <- fmap fromJust . HM.filter isJust
         <$> mergeHashMapsWithKeyM (combine $ additionalProps scm) (props scm) obj
       checkedObj <- mapM (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
@@ -286,8 +284,8 @@ checkCustoms v = do
     isCustom (CustomNode _) = True
     isCustom _              = False
     -- Check value against successfors of a custom node.
-    checkCustom node@(CustomNode ident)= do
-      neighbourhood <- asks (postSet node . typeGraph)
+    checkCustom (CustomNode ident)= do
+      neighbourhood <- asks $ typesAs . lookupSchema ident
       case neighbourhood of
         IsNonEmpty ne -> do
           put (ne, Just ident)
@@ -300,3 +298,7 @@ anySet = singleton AnyNode
 
 textify :: Identifier -> Text
 textify (Identifier t) = t
+
+-- Unsafe function
+lookupSchema :: Identifier -> Schema -> CompiledSchema
+lookupSchema ident = fromJust . M.lookup ident . compiledSchemata

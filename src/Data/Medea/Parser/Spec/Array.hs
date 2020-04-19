@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Data.Medea.Parser.Spec.Array where
 
@@ -34,17 +33,17 @@ parseSpecification = do
     (minL, maxL) <- parseLength <|> pure (Nothing, Nothing)
     spec <- try $ permute minL maxL
     case spec of
-      Specification Nothing Nothing Nothing Nothing -> do
+      Specification Nothing Nothing Nothing Nothing ->
         -- the user must specify length, or a type, or a tuple spec
         customFailure EmptyLengthArraySpec
-      Specification _ _ (Just _) (Just _) -> do
+      Specification _ _ (Just _) (Just _) ->
         -- the user has defined both element type and tuple. 
         -- this is illegal behaviour
         customFailure ConflictingSpecRequirements
-      Specification (Just ml) _ _ (Just ts) -> do
+      Specification (Just ml) _ _ (Just ts) ->
         -- the user cannot specify length and tuples
         customFailure ConflictingSpecRequirements
-      Specification _ (Just ml) _ (Just ts) -> do
+      Specification _ (Just ml) _ (Just ts) ->
         customFailure ConflictingSpecRequirements
       _                             -> pure spec
   where
@@ -63,17 +62,17 @@ parseLength = do
       <*> toPermutationWithDefault Nothing (try parseMaxSpec)
 
 parseMinSpec :: MedeaParser (Maybe Natural)
-parseMinSpec = do
+parseMinSpec =
   parseLine 8 $ Just <$> parseKeyVal "minimum" parseNatural
 
 parseMaxSpec :: MedeaParser (Maybe Natural)
-parseMaxSpec = do
+parseMaxSpec =
   parseLine 8 $ Just <$> parseKeyVal "maximum" parseNatural
 
 parseElementType :: MedeaParser (Maybe Identifier)
 parseElementType = do
   _ <- parseLine 4 $ parseReservedChunk "element_type"
-  element <-  (parseLine 8 parseIdentifier) <|> customFailure EmptyArrayElements
+  element <-  parseLine 8 parseIdentifier <|> customFailure EmptyArrayElements
   pure $ Just element
 
 parseTupleSpec :: MedeaParser (Maybe [Identifier])

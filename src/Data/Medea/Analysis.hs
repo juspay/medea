@@ -85,7 +85,7 @@ intoEdges m redScm =
       when (reachableSchemas < M.size m) $ throwError UnreachableSchemata
     checkUndefinedPropSchema =
       case filter isUndefinedNode . map fst . HM.elems . fst . reducedObject $ redScm of
-        (CustomNode ident):_ -> throwError $ DanglingTypeRefProp ident
+        CustomNode ident : _ -> throwError $ DanglingTypeRefProp ident
         _ -> pure ()
       where
         isUndefinedNode (CustomNode ident) = isNothing . M.lookup ident $ m
@@ -135,7 +135,7 @@ reduceSchema scm = do
     maxL = maxLength arraySpec 
     reducedArraySpec = ( minL, maxL, elementType arraySpec, tupleSpec arraySpec)
     typeNodes = fmap (identToNode . Just) types
-    reducedStringValsSpec = String.toReducedSpec $ stringValsSpec 
+    reducedStringValsSpec = String.toReducedSpec stringValsSpec 
   reducedProps <- foldM go HM.empty (properties objSpec)
   when (minL > maxL) $
     throwError $ MinMoreThanMax schemaName

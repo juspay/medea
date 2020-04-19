@@ -212,14 +212,14 @@ checkPrim v = do
     Null -> pure $ NullSchema :< NullF
     Bool b -> pure $ BooleanSchema :< BooleanF b
     Number n -> pure $ NumberSchema :< NumberF n
-    String s -> do 
+    String s ->
       case par of
         -- if we are checking against a dependant string, we match against the supplied values
         Nothing -> pure $ StringSchema :< StringF s
         Just parIdent -> do
           scm <- lookupSchema parIdent
           let validVals = reducedStringVals scm
-          if s `V.elem` validVals || length validVals == 0
+          if s `V.elem` validVals || null validVals
              then pure $ StringSchema :< StringF s
              else throwError $ NotOneOfOptions v
     Array arr -> do

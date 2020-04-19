@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TupleSections #-}
 
 module Data.Medea.Analysis where
 
@@ -8,10 +9,9 @@ import Algebra.Graph.Acyclic.AdjacencyMap (AdjacencyMap, toAcyclic)
 import qualified Algebra.Graph.AdjacencyMap as Cyclic
 import Control.Monad (foldM, when)
 import Control.Monad.Except (MonadError (..))
-import Control.Monad.State.Strict (evalStateT, gets, modify)
 import Data.Coerce (coerce)
 import qualified Data.HashMap.Strict as HM
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing, mapMaybe)
 import qualified Data.Map.Strict as M
 import Data.Medea.JSONType (JSONType (..))
 import Data.Medea.Parser.Primitive
@@ -38,12 +38,12 @@ import qualified Data.Vector as V
 data AnalysisError
   = DuplicateSchemaName Identifier
   | NoStartSchema
-  | DanglingTypeReference Identifier
+  | DanglingTypeReference Identifier Identifier
   | TypeRelationIsCyclic
   | ReservedDefined Identifier
-  | UnreachableSchemata
+  | DefinedButNotUsed Identifier 
   | MinMoreThanMax Identifier
-  | DanglingTypeRefProp Identifier
+  | DanglingTypeRefProp Identifier Identifier
   | DuplicatePropName Identifier MedeaString
 
 data TypeNode
@@ -53,6 +53,7 @@ data TypeNode
   deriving (Eq, Ord, Show)
 
 data CompiledSchema = CompiledSchema {
+  schemaNode :: TypeNode,
   typesAs :: V.Vector TypeNode,
   minListLen :: Maybe Natural,
   maxListLen :: Maybe Natural,
@@ -62,49 +63,24 @@ data CompiledSchema = CompiledSchema {
 
 intoAcyclic ::
   (MonadError AnalysisError m) =>
-  [(TypeNode, TypeNode)] ->
-  m (AdjacencyMap TypeNode)
-intoAcyclic = maybe (throwError TypeRelationIsCyclic) pure . toAcyclic . Cyclic.edges
-
-intoEdges ::
-  (MonadError AnalysisError m) =>
   M.Map Identifier CompiledSchema ->
-  CompiledSchema ->
-  m [(TypeNode, TypeNode)]
-intoEdges m compiledScm =
-  evalStateT (go [] compiledScm startNode <* checkUnusedSchema <* checkUndefinedPropSchema) S.empty
+  m (AdjacencyMap TypeNode)
+intoAcyclic = maybe (throwError TypeRelationIsCyclic) pure . toAcyclic . getTypesAsGraph
   where
-    startNode = CustomNode startIdentifier
-    checkUnusedSchema = do
-      reachableSchemas <- gets S.size 
-      when (reachableSchemas < M.size m) $ throwError UnreachableSchemata
-    checkUndefinedPropSchema =
-      case filter isUndefinedNode . map fst . HM.elems . props $ compiledScm of
-        (CustomNode ident):_ -> throwError $ DanglingTypeRefProp ident
-        _ -> pure ()
-      where
-        isUndefinedNode (CustomNode ident) = isNothing . M.lookup ident $ m
-        isUndefinedNode _                  = False
-    go acc scm node = do
-      alreadySeen <- gets (S.member node)
-      if alreadySeen
-      then pure acc
-      else do
-        modify (S.insert node)
-        traverseRefs acc node $ V.toList . typesAs $ scm
-    traverseRefs acc node refs =
-      (acc <>) . concat <$> traverse (resolveLinks node) refs
-    resolveLinks u t = case t of
-      CustomNode ident -> case M.lookup ident m of
-        Nothing -> throwError . DanglingTypeReference $ ident
-        Just scm -> (:) <$> pure (u, t) <*> go [] scm t
-      _  -> pure . pure $ (u,t)
+    getTypesAsGraph = Cyclic.edges . concatMap intoTypesAsEdges . M.elems
+    intoTypesAsEdges scm = fmap (schemaNode scm,) . V.toList . typesAs $ scm
 
-intoMap ::
+compileSchemata ::
   (MonadError AnalysisError m) =>
   Schemata.Specification ->
   m (M.Map Identifier CompiledSchema)
-intoMap (Schemata.Specification v) = foldM go M.empty v
+compileSchemata (Schemata.Specification v) = do
+  m <- foldM go M.empty v
+  checkStartSchema m
+  checkDanglingReferences getTypeRefs DanglingTypeReference m
+  checkDanglingReferences getPropertyTypeRefs DanglingTypeRefProp m
+  checkUnusedSchemata m
+  pure m
   where
     go acc spec = M.alterF (checkedInsert spec) (Schema.name spec) acc
     checkedInsert spec = \case
@@ -125,12 +101,13 @@ compileSchema scm = do
     throwError $ MinMoreThanMax schemaName
   propMap <- foldM go HM.empty (properties objSpec)
   pure $ CompiledSchema {
-           typesAs         = defaultToAny $ fmap (identToNode . Just) types,
-           minListLen      = coerce $ minLength arraySpec,
-           maxListLen      = coerce $ maxLength arraySpec,
-           props           = propMap,
-           additionalProps = additionalAllowed objSpec
-         }
+      schemaNode      = identToNode . Just $ schemaName,
+      typesAs         = defaultToAny $ fmap (identToNode . Just) types,
+      minListLen      = coerce $ minLength arraySpec,
+      maxListLen      = coerce $ maxLength arraySpec,
+      props           = propMap,
+      additionalProps = additionalAllowed objSpec
+    }
     where
       Schema.Specification schemaName (Type.Specification types) arraySpec objSpec
         = scm
@@ -141,15 +118,53 @@ compileSchema scm = do
       defaultToAny vec | V.null vec = V.singleton AnyNode
                        | otherwise  = vec
 
+checkStartSchema ::
+  (MonadError AnalysisError m) =>
+  M.Map Identifier CompiledSchema ->
+  m ()
+checkStartSchema m = case M.lookup startIdentifier m of
+  Nothing -> throwError NoStartSchema
+  Just _ -> pure ()
+
+-- We need a 'getRefs' argument here so that we can differentiate between
+-- different kinds of Dangling references(type/property/list/tuple).
+checkDanglingReferences ::
+  (MonadError AnalysisError m) =>
+  (CompiledSchema -> [TypeNode]) ->
+  (Identifier -> Identifier -> AnalysisError) ->
+  M.Map Identifier CompiledSchema ->
+  m ()
+checkDanglingReferences getRefs err m = mapM_ go . M.toList $ m
+  where
+    go (schemaName, scm) = case getDanglingRefs scm of
+      danglingRef:_  -> throwError $ err danglingRef schemaName
+      []                 -> pure ()
+    getDanglingRefs = filter isUndefined . mapMaybe fromCustomNode . getRefs
+    isUndefined ident = isNothing . M.lookup ident $ m
+    fromCustomNode (CustomNode ident) = Just ident
+    fromCustomNode _                  = Nothing
+
+checkUnusedSchemata ::
+  (MonadError AnalysisError m) =>
+  M.Map Identifier CompiledSchema ->
+  m ()
+checkUnusedSchemata m = mapM_ checkUnused . M.keys $ m
+  where
+    checkUnused ident 
+      | S.member (CustomNode ident) allReferences = pure ()
+      | isStartIdent ident = pure ()
+      | otherwise = throwError $ DefinedButNotUsed ident
+    allReferences = S.unions . fmap getReferences . M.elems $ m
+    getReferences scm = S.fromList $ getTypeRefs scm ++ getPropertyTypeRefs scm
+
+-- Helpers
 identToNode :: Maybe Identifier -> TypeNode
 identToNode ident = case ident of
   Nothing -> AnyNode
   Just t -> maybe (CustomNode t) (PrimitiveNode . typeOf) $ tryPrimType t
 
-checkStartSchema ::
-  (MonadError AnalysisError m) =>
-  M.Map Identifier CompiledSchema ->
-  m CompiledSchema
-checkStartSchema m = case M.lookup startIdentifier m of
-  Nothing -> throwError NoStartSchema
-  Just scm -> pure scm
+getTypeRefs :: CompiledSchema -> [TypeNode]
+getTypeRefs = V.toList . typesAs
+
+getPropertyTypeRefs :: CompiledSchema -> [TypeNode]
+getPropertyTypeRefs = fmap fst . HM.elems . props

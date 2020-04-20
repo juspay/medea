@@ -71,9 +71,6 @@ checkAcyclic ::
   m ()
 checkAcyclic m = when (isNothing . toAcyclic . getTypesAsGraph $ m)
     $ throwError TypeRelationIsCyclic
-  where
-    getTypesAsGraph = Cyclic.edges . concatMap intoTypesAsEdges . M.elems
-    intoTypesAsEdges scm = fmap (schemaNode scm,) . NEList.toList . NESet.toList . typesAs $ scm
 
 compileSchemata ::
   (MonadError AnalysisError m) =>
@@ -124,7 +121,7 @@ compileSchema scm = do
         Just _  -> throwError $ DuplicatePropName schemaName (propName prop)
       defaultToAny :: [TypeNode] -> NEList.NonEmpty TypeNode
       defaultToAny xs = case NEList.nonEmpty xs of
-        Nothing  -> ((NEList.:|) AnyNode [])
+        Nothing  -> (NEList.:|) AnyNode []
         Just xs' -> xs'
 
 checkStartSchema ::
@@ -177,3 +174,9 @@ getTypeRefs = NEList.toList . NESet.toList . typesAs
 
 getPropertyTypeRefs :: CompiledSchema -> [TypeNode]
 getPropertyTypeRefs = fmap fst . HM.elems . props
+
+getTypesAsGraph :: M.Map Identifier CompiledSchema -> Cyclic.AdjacencyMap TypeNode
+getTypesAsGraph = Cyclic.edges . concatMap intoTypesAsEdges . M.elems
+
+intoTypesAsEdges :: CompiledSchema -> [(TypeNode, TypeNode)]
+intoTypesAsEdges scm = fmap (schemaNode scm,) . NEList.toList . NESet.toList . typesAs $ scm

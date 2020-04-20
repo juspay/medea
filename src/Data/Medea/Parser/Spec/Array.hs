@@ -30,8 +30,7 @@ combineSpec (Specification a1 b1 c1 d1) (Specification a2 b2 c2 d2) = Specificat
 
 parseSpecification :: MedeaParser Specification
 parseSpecification = do
-    (minL, maxL) <- parseLength <|> pure (Nothing, Nothing)
-    spec <- try $ permute minL maxL
+    spec <- try permute
     case spec of
       Specification Nothing Nothing Nothing Nothing ->
         -- the user must specify length, or a type, or a tuple spec
@@ -40,34 +39,27 @@ parseSpecification = do
         -- the user has defined both element type and tuple. 
         -- this is illegal behaviour
         customFailure ConflictingSpecRequirements
-      Specification (Just ml) _ _ (Just ts) ->
+      Specification (Just _) _ _ (Just _) ->
         -- the user cannot specify length and tuples
         customFailure ConflictingSpecRequirements
-      Specification _ (Just ml) _ (Just ts) ->
+      Specification _ (Just _) _ (Just _) ->
         customFailure ConflictingSpecRequirements
       _                             -> pure spec
   where
-    permute minL' maxL'= runPermutation $ Specification minL' maxL'
-      <$> toPermutationWithDefault Nothing (try parseElementType)
-      <*> toPermutationWithDefault Nothing (try parseTupleSpec)
-
-parseLength :: MedeaParser (Maybe Natural, Maybe Natural)
-parseLength = do
-  _ <-  try $ parseLine 4 $ try $ parseReservedChunk "length"
-  (minL, maxL) <- permute
-  pure (minL, maxL)
-  where
-    permute = runPermutation $ (,)
+    permute = runPermutation $ Specification
       <$> toPermutationWithDefault Nothing (try parseMinSpec)
       <*> toPermutationWithDefault Nothing (try parseMaxSpec)
+      <*> toPermutationWithDefault Nothing (try parseElementType)
+      <*> toPermutationWithDefault Nothing (try parseTupleSpec)
+
 
 parseMinSpec :: MedeaParser (Maybe Natural)
 parseMinSpec =
-  parseLine 8 $ Just <$> parseKeyVal "minimum" parseNatural
+  parseLine 4 $ Just <$> parseKeyVal "min_length" parseNatural
 
 parseMaxSpec :: MedeaParser (Maybe Natural)
 parseMaxSpec =
-  parseLine 8 $ Just <$> parseKeyVal "maximum" parseNatural
+  parseLine 4 $ Just <$> parseKeyVal "max_length" parseNatural
 
 parseElementType :: MedeaParser (Maybe Identifier)
 parseElementType = do

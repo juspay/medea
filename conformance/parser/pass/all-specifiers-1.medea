@@ -5,5 +5,4 @@ $schema $start
     $properties
         $property-name "foo"
         $property-name "bar"
-    $length
-        $maximum 42
+    $max_length 42

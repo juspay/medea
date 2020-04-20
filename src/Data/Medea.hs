@@ -237,9 +237,9 @@ checkPrim v = do
     -- check if the array length is within the specification range.
     checkArray arr parIdent = do
       scm <- asks $ lookupSchema parIdent
-      let arrLen = V.length arr
-      when (maybe False (arrLen <) (fromIntegral <$> minListLen scm)
-        || maybe False (arrLen >) (fromIntegral <$> maxListLen scm)) $
+      let arrLen = fromIntegral $ V.length arr
+      when (maybe False (arrLen <) (minArrayLen scm)
+        || maybe False (arrLen >) (maxArrayLen scm)) $
         throwError . OutOfBoundsArrayLength (textify parIdent) . Array $ arr
     -- check if object properties satisfy the corresponding specification.
     checkObject obj parIdent = do

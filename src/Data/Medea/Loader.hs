@@ -51,6 +51,10 @@ data LoaderError
   | -- | A property specifier section has two properties with the same name.
     -- | Arguments are the parent Schema name and the property name.
     MultiplePropSchemaDefinition Text Text
+  | -- | name of the undefined list element type and the schema that references it.
+    MissingListSchemaDefinition Text Text
+  | -- | name of the undefined tuple positional schema and the schema that references it.
+    MissingTupleSchemaDefinition Text Text
   deriving (Show)
 
 -- | Attempt to produce a schema from binary data in memory.
@@ -129,4 +133,8 @@ analyze scm = case runExcept $ compileSchemata scm of
     throwError $ MinimumLengthGreaterThanMaximum (toText ident)
   Left (DuplicatePropName ident prop) -> throwError $
     MultiplePropSchemaDefinition (toText ident) (unwrap prop)
+  Left (DanglingTypeRefList danglingRef parSchema) ->
+    throwError $ MissingListSchemaDefinition (toText danglingRef) (toText parSchema)
+  Left (DanglingTypeRefTuple danglingRef parSchema) ->
+    throwError $ MissingTupleSchemaDefinition (toText danglingRef) (toText parSchema)
   Right g -> pure . Schema $ g

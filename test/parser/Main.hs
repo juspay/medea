@@ -1,7 +1,6 @@
 module Main where
 
 import Data.Foldable (traverse_)
-import Data.List (isInfixOf)
 import Data.Medea (loadSchemaFromFile)
 import Test.Hspec (Spec, describe, hspec, it, runIO, shouldSatisfy, shouldNotSatisfy)
 import TestM.Util (listMedeaFiles)

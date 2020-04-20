@@ -7,12 +7,13 @@ module Data.Medea.Analysis where
 import Prelude
 import Algebra.Graph.Acyclic.AdjacencyMap (toAcyclic)
 import qualified Algebra.Graph.AdjacencyMap as Cyclic
+import Control.Applicative ((<|>))
 import Control.Monad (foldM, when)
 import Control.Monad.Except (MonadError (..))
 import Data.Coerce (coerce)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NEList
-import Data.Maybe (isNothing, mapMaybe)
+import Data.Maybe (isNothing, mapMaybe, isJust)
 import qualified Data.Map.Strict as M
 import Data.Medea.JSONType (JSONType (..))
 import Data.Medea.Parser.Primitive
@@ -47,6 +48,8 @@ data AnalysisError
   | DefinedButNotUsed Identifier 
   | MinMoreThanMax Identifier
   | DanglingTypeRefProp Identifier Identifier
+  | DanglingTypeRefList Identifier Identifier
+  | DanglingTypeRefTuple Identifier Identifier
   | DuplicatePropName Identifier MedeaString
 
 data TypeNode
@@ -58,12 +61,16 @@ data TypeNode
 data CompiledSchema = CompiledSchema {
   schemaNode :: TypeNode,
   typesAs :: NESet.NESet TypeNode,
-  minListLen :: Maybe Natural,
-  maxListLen :: Maybe Natural,
+  minArrayLen :: Maybe Natural,
+  maxArrayLen :: Maybe Natural,
+  arrayTypes :: Maybe ArrayType,
   props :: HM.HashMap Text (TypeNode, Bool),
   additionalProps :: Bool,
   stringVals :: V.Vector Text
 } deriving (Show)
+
+data ArrayType = ListType TypeNode | TupleType (V.Vector TypeNode)
+  deriving (Show)
 
 checkAcyclic ::
   (MonadError AnalysisError m) =>
@@ -81,6 +88,8 @@ compileSchemata (Schemata.Specification v) = do
   checkStartSchema m
   checkDanglingReferences getTypeRefs DanglingTypeReference m
   checkDanglingReferences getPropertyTypeRefs DanglingTypeRefProp m
+  checkDanglingReferences getListTypeRefs DanglingTypeRefList m
+  checkDanglingReferences getListTypeRefs DanglingTypeRefTuple m
   checkUnusedSchemata m
   checkAcyclic m
   pure m
@@ -100,14 +109,19 @@ compileSchema scm = do
   when (isReserved schemaName && (not . isStartIdent) schemaName)
     $ throwError . ReservedDefined
     $ schemaName 
-  when (minLength arraySpec > maxLength arraySpec) $
+  let minListLen = minLength arraySpec
+      maxListLen = maxLength arraySpec
+  when (isJust minListLen && isJust maxListLen && minListLen > maxListLen) $
     throwError $ MinMoreThanMax schemaName
   propMap <- foldM go HM.empty (properties objSpec)
+  let arrType = getArrayTypes (elementType arraySpec) (tupleSpec arraySpec)
+      tupleLen = getTupleTypeLen arrType
   pure $ CompiledSchema {
       schemaNode      = identToNode . Just $ schemaName,
       typesAs         = NESet.fromList . defaultToAny . V.toList . fmap (identToNode . Just) $ types,
-      minListLen      = coerce $ minLength arraySpec,
-      maxListLen      = coerce $ maxLength arraySpec,
+      minArrayLen     = minListLen <|> tupleLen,
+      maxArrayLen     = maxListLen <|> tupleLen,
+      arrayTypes      = arrType,
       props           = propMap,
       additionalProps = additionalAllowed objSpec,
       stringVals      = String.toReducedSpec stringValsSpec
@@ -123,7 +137,7 @@ compileSchema scm = do
       defaultToAny xs = case NEList.nonEmpty xs of
         Nothing  -> (NEList.:|) AnyNode []
         Just xs' -> xs'
-
+      
 checkStartSchema ::
   (MonadError AnalysisError m) =>
   M.Map Identifier CompiledSchema ->
@@ -161,7 +175,8 @@ checkUnusedSchemata m = mapM_ checkUnused . M.keys $ m
       | isStartIdent ident = pure ()
       | otherwise = throwError $ DefinedButNotUsed ident
     allReferences = S.unions . fmap getReferences . M.elems $ m
-    getReferences scm = S.fromList $ getTypeRefs scm ++ getPropertyTypeRefs scm
+    getReferences scm = S.fromList $
+      getTypeRefs scm ++ getPropertyTypeRefs scm ++ getListTypeRefs scm ++ getTupleTypeRefs scm
 
 -- Helpers
 identToNode :: Maybe Identifier -> TypeNode
@@ -174,6 +189,26 @@ getTypeRefs = NEList.toList . NESet.toList . typesAs
 
 getPropertyTypeRefs :: CompiledSchema -> [TypeNode]
 getPropertyTypeRefs = fmap fst . HM.elems . props
+
+getListTypeRefs :: CompiledSchema -> [TypeNode]
+getListTypeRefs scm = case arrayTypes scm of
+  Just (ListType typeNode) -> [typeNode]
+  _                        -> []
+
+getTupleTypeRefs :: CompiledSchema -> [TypeNode]
+getTupleTypeRefs scm = case arrayTypes scm of
+  Just (TupleType typeNodes) -> V.toList typeNodes
+  _                          -> []
+
+getArrayTypes :: Maybe Identifier -> Maybe [Identifier] -> Maybe ArrayType
+getArrayTypes Nothing Nothing = Nothing
+getArrayTypes (Just ident) _  = Just . ListType . identToNode . Just $ ident
+getArrayTypes _ (Just idents) =
+  Just . TupleType . V.fromList $ identToNode . Just <$> idents
+
+getTupleTypeLen :: Maybe ArrayType -> Maybe Natural
+getTupleTypeLen (Just (TupleType types)) = Just . fromIntegral . V.length $ types
+getTupleTypeLen _                        = Nothing
 
 getTypesAsGraph :: M.Map Identifier CompiledSchema -> Cyclic.AdjacencyMap TypeNode
 getTypesAsGraph = Cyclic.edges . concatMap intoTypesAsEdges . M.elems

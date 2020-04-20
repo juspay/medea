@@ -343,6 +343,10 @@ information (that is, no object property specifier sections and no additional
 property permission), a JSON object is only considered valid if it is empty
 (that is, it defines no properties at all). 
 
+If an object property specifier contains a property name line, but no property
+schema line, then, provided that the named property is defined, any value for
+said property is considered valid.  
+
 #### String value specification
 
 **Description:** A _string value specification_ describes which values a JSON string

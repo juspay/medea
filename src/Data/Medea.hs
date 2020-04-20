@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -40,7 +41,7 @@ import Data.Functor (($>))
 import Data.Hashable (Hashable (..))
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust, fromJust)
-import Data.Medea.Analysis (TypeNode (..), CompiledSchema(..))
+import Data.Medea.Analysis (TypeNode (..), CompiledSchema(..), ArrayType(..))
 import qualified Data.HashMap.Strict as HM
 import Data.Medea.JSONType (JSONType (..), typeOf)
 import Data.Medea.Loader
@@ -221,31 +222,34 @@ checkPrim v = do
         if s `V.elem` validVals || null validVals
            then pure $ StringSchema :< StringF s
            else throwError $ NotOneOfOptions v
-    Array arr -> do
-      case par of
-        Nothing -> pure ()
-        Just parIdent -> checkArrayBounds arr parIdent
-        -- We currently don't check array contents,
-        -- therefore we punt to AnyNode before we carry on.
-      put (anySet, Nothing)
-      (ArraySchema :<) . ArrayF <$> mapM checkTypes arr
+    Array arr -> case par of
+      Nothing -> put (anySet, Nothing) >> (ArraySchema :<) . ArrayF <$> mapM checkTypes arr
+      Just parIdent -> checkArray arr parIdent
     Object obj -> case par of
       -- Fast Path (no object spec)
       Nothing -> put (anySet, Nothing) >> (ObjectSchema :<) . ObjectF <$> mapM checkTypes obj
       Just parIdent -> checkObject obj parIdent
 
 -- check if the array length is within the specification range.
-checkArrayBounds
-  :: (Alternative m, MonadReader Schema m, MonadError ValidationError m)
+checkArray
+  :: (Alternative m, MonadReader Schema m, MonadState (NESet TypeNode, Maybe Identifier) m, MonadError ValidationError m)
   => Array
   -> Identifier
-  -> m ()
-checkArrayBounds arr parIdent = do
+  -> m (Cofree ValidJSONF SchemaInformation)
+checkArray arr parIdent = do
   scm <- asks $ lookupSchema parIdent
   let arrLen = fromIntegral $ V.length arr
   when (maybe False (arrLen <) (minArrayLen scm)
     || maybe False (arrLen >) (maxArrayLen scm)) $
     throwError . OutOfBoundsArrayLength (textify parIdent) . Array $ arr
+  let valsAndTypes = pairValsWithTypes $ arrayTypes scm
+  checkedArray <- mapM (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
+  pure $ ArraySchema :< ArrayF checkedArray
+    where
+      pairValsWithTypes Nothing = fmap (,AnyNode) arr
+      pairValsWithTypes (Just (ListType node)) = fmap (,node) arr
+      pairValsWithTypes (Just (TupleType nodes)) = V.zip arr nodes
+
 
 -- check if object properties satisfy the corresponding specification.
 checkObject

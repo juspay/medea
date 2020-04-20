@@ -212,13 +212,13 @@ checkPrim v = do
     Null -> pure $ NullSchema :< NullF
     Bool b -> pure $ BooleanSchema :< BooleanF b
     Number n -> pure $ NumberSchema :< NumberF n
-    String s ->  case par of
+    String s -> case par of
       -- if we are checking against a dependant string, we match against the supplied values
       Nothing -> pure $ StringSchema :< StringF s
       Just parIdent -> do
         scm <- asks $ lookupSchema parIdent
         let validVals = stringVals scm
-        if s `V.elem` validVals || length validVals == 0
+        if s `V.elem` validVals || null validVals
            then pure $ StringSchema :< StringF s
            else throwError $ NotOneOfOptions v
     Array arr -> do
@@ -239,7 +239,7 @@ checkPrim v = do
       scm <- asks $ lookupSchema parIdent
       let arrLen = V.length arr
       when (maybe False (arrLen <) (fromIntegral <$> minListLen scm)
-         || maybe False (arrLen >) (fromIntegral <$> maxListLen scm)) $
+        || maybe False (arrLen >) (fromIntegral <$> maxListLen scm)) $
         throwError . OutOfBoundsArrayLength (textify parIdent) . Array $ arr
     -- check if object properties satisfy the corresponding specification.
     checkObject obj parIdent = do

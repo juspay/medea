@@ -12,6 +12,7 @@ import qualified Data.Vector                      as V
 import           Text.Megaparsec                  (MonadParsec (..), many,
                                                    option, try)
 
+
 data Specification = Specification {
   properties :: Vector Property.Specification,
   additionalAllowed :: Bool

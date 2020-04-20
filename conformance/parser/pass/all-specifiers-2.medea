@@ -1,6 +1,5 @@
 $schema $start
-    $length
-        $maximum 42
+    $max_length 42
     $type
         $null
         $boolean

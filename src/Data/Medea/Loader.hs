@@ -101,7 +101,9 @@ fromUtf8 ::
 fromUtf8 sourceName utf8 =
   case parse Schemata.parseSpecification sourceName utf8 of
     Left err -> case NE.head . bundleErrors $ err of
-      TrivialError o u e -> throwError . ParserError . TrivialError o u $ e
+      TrivialError o u e ->
+        throwError . ParserError . TrivialError o u $ e
+        
       -- TODO: Handle all kinds of ParseError
       FancyError {} -> throwError IdentifierTooLong
     Right scm -> pure scm

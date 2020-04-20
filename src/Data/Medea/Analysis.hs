@@ -30,7 +30,7 @@ import qualified Data.Medea.Parser.Spec.Schema as Schema
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
 import qualified Data.Medea.Parser.Spec.Type as Type
 import qualified Data.Medea.Parser.Spec.String as String
-import Data.Medea.Parser.Spec.Array (minLength, maxLength)
+import Data.Medea.Parser.Spec.Array (minLength, maxLength, elementType, tupleSpec)
 import Data.Medea.Parser.Spec.Object (properties, additionalAllowed)
 import Data.Medea.Parser.Spec.Property (propSchema, propName, propOptional)
 import qualified Data.Set as S

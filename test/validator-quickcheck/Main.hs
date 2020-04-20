@@ -21,7 +21,7 @@ import Data.HashMap.Strict (lookup)
 import Data.Text (Text)
 import Test.Hspec (Spec, describe, hspec, it, runIO, shouldNotSatisfy)
 import Test.Hspec.Core.Spec (SpecM)
-import Test.QuickCheck ((==>), arbitrary, forAll, property, quickCheck, Gen, Property)
+import Test.QuickCheck ((==>), arbitrary, forAll, property, Gen, Property)
 import qualified Test.QuickCheck.Gen as Gen
 import TestM (isParseError, isSchemaError, runTestM)
 
@@ -140,17 +140,17 @@ hasOptionalProperty :: Text -> (Value -> Bool) -> Value -> Bool
 hasOptionalProperty propName p (Object obj) = maybe True p $ lookup propName obj
 hasOptionalProperty _ _ _ = False
 
-testStringVals :: FilePath -> [ String ] -> Spec
+testStringVals :: FilePath -> [String] -> Spec
 testStringVals fp validStrings = do
-  scm <- loadAndParse $ prependTestDir $ fp
+  scm <- loadAndParse $ prependTestDir fp
   it ("Should validate " ++ "string is one of " ++ show validStrings ++ "s: " ++ fp) (property . forAll genString . validationIsCorrect $ scm)
   
   it ("Shouldn't validate " ++ "string is one of " ++ show validStrings ++ "s: " ++ fp) (property . forAll genString . invalidationIsCorrect $ scm)
   where 
     validationIsCorrect scm s = s `elem` validStrings ==> isRight . runExcept . validate scm . encode $ s 
-    invalidationIsCorrect scm s  = not (s `elem` validStrings) ==> isLeft . runExcept . validate scm . encode $ s
+    invalidationIsCorrect scm s  = (s `notElem` validStrings) ==> isLeft . runExcept . validate scm . encode $ s
     genString :: Gen.Gen String
-    genString = Gen.oneof [ (Gen.elements validStrings), arbitrary]
+    genString = Gen.oneof [Gen.elements validStrings, arbitrary]
 
 loadAndParse :: FilePath -> SpecM () Schema
 loadAndParse fp = do

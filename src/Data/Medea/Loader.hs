@@ -8,10 +8,7 @@ import Data.ByteString (ByteString, hGetContents, readFile)
 import qualified Data.List.NonEmpty as NE
 import Data.Medea.Analysis
   ( AnalysisError (..),
-    checkStartSchema,
-    intoAcyclic,
-    intoEdges,
-    intoMap,
+    compileSchemata
   )
 import Data.Medea.Parser.Primitive (toText, unwrap)
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
@@ -41,14 +38,14 @@ data LoaderError
     SelfTypingSchema
   | -- | A schema was defined more than once.
     MultipleSchemaDefinition Text
-  | -- | name of the undefined schema
-    MissingSchemaDefinition Text
+  | -- | name of the undefined schema and the schema that references it.
+    MissingSchemaDefinition Text Text
   | -- | A schema with non-start reserved naming identifier.
     SchemaNameReserved Text -- name of the reserved identifier
-  | -- | There is at least one isolated schema.
-    IsolatedSchemata
-  | -- | Value for `$object-schema` is an undefined schema.
-    MissingPropSchemaDefinition Text
+  | -- | An isolated schema was found.
+    IsolatedSchemata Text
+  | -- | name of the undefined property-schema and the schema that references it.
+    MissingPropSchemaDefinition Text Text
   | -- | Minimum length specification was more than maximum.
     MinimumLengthGreaterThanMaximum Text -- name of the schema
   | -- | A property specifier section has two properties with the same name.
@@ -113,23 +110,21 @@ analyze ::
   (MonadError LoaderError m) =>
   Schemata.Specification ->
   m Schema
-analyze scm = case runExcept go of
-  Left (DuplicateSchemaName ident) -> errWithIdent MultipleSchemaDefinition ident
+analyze scm = case runExcept $ compileSchemata scm of
+  Left (DuplicateSchemaName ident) -> 
+    throwError $ MultipleSchemaDefinition (toText ident)
   Left NoStartSchema -> throwError StartSchemaMissing
-  Left (DanglingTypeReference ident) -> errWithIdent MissingSchemaDefinition ident
+  Left (DanglingTypeReference danglingRef parSchema) ->
+    throwError $ MissingSchemaDefinition (toText danglingRef) (toText parSchema)
   Left TypeRelationIsCyclic -> throwError SelfTypingSchema
-  Left (ReservedDefined ident) -> errWithIdent SchemaNameReserved ident
-  Left UnreachableSchemata -> throwError IsolatedSchemata
-  Left (DanglingTypeRefProp ident) -> errWithIdent MissingPropSchemaDefinition ident
-  Left (MinMoreThanMax ident) -> errWithIdent MinimumLengthGreaterThanMaximum ident
+  Left (ReservedDefined ident) -> 
+    throwError $ SchemaNameReserved (toText ident)
+  Left (DefinedButNotUsed ident) ->
+    throwError $ IsolatedSchemata (toText ident)
+  Left (DanglingTypeRefProp danglingRef parSchema) ->
+    throwError $ MissingPropSchemaDefinition (toText danglingRef) (toText parSchema)
+  Left (MinMoreThanMax ident) ->
+    throwError $ MinimumLengthGreaterThanMaximum (toText ident)
   Left (DuplicatePropName ident prop) -> throwError $
     MultiplePropSchemaDefinition (toText ident) (unwrap prop)
-  Right g -> pure g
-  where
-    errWithIdent errConst = throwError . errConst . toText
-    go = do
-      m <- intoMap scm
-      startSchema <- checkStartSchema m
-      edges <- intoEdges m startSchema
-      tg <- intoAcyclic edges
-      pure $ Schema tg m
+  Right g -> pure . Schema $ g

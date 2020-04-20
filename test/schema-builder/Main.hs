@@ -1,5 +1,6 @@
 module Main where
 
+import Data.Either (isRight)
 import Data.Foldable (traverse_)
 import Data.Medea (loadSchemaFromFile)
 import Test.Hspec
@@ -8,7 +9,6 @@ import Test.Hspec
     hspec,
     it,
     runIO,
-    shouldNotSatisfy,
     shouldSatisfy,
   )
 import TestM.Util (listMedeaFiles)
@@ -16,13 +16,22 @@ import TestM (isSchemaError, runTestM)
 
 main :: IO ()
 main = do
-  let prefix = "./conformance/schema-builder"
-  testFiles <- listMedeaFiles prefix
-  hspec . describe "Invalid schemata cases" . traverse_ makeSchemaTest $ testFiles
+  let failDir = "./conformance/schema-builder/fail"
+      passDir = "./conformance/schema-builder/pass"
+  failFiles <- listMedeaFiles failDir 
+  passFiles <- listMedeaFiles passDir
+  hspec $ do
+    describe "Invalid schemata cases" . traverse_ makeFailTest $ failFiles
+    describe "Valid schemata cases" . traverse_ makePassTest $ passFiles
 
 -- Helpers
 
-makeSchemaTest :: FilePath -> Spec
-makeSchemaTest fp = do
+makeFailTest :: FilePath -> Spec
+makeFailTest fp = do
   result <- runIO . runTestM . loadSchemaFromFile $ fp
   it ("Shouldn't build: " ++ fp) (result `shouldSatisfy` isSchemaError)
+
+makePassTest :: FilePath -> Spec
+makePassTest fp = do
+  result <- runIO . runTestM . loadSchemaFromFile $ fp
+  it ("Should build: " ++ fp) (result `shouldSatisfy` isRight)

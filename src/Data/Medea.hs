@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Data.Medea
   ( SchemaInformation (..),
@@ -21,7 +22,6 @@ module Data.Medea
   )
 where
 
-import Algebra.Graph.Acyclic.AdjacencyMap (postSet)
 import Control.Applicative (Alternative, (<|>))
 import Control.Comonad.Cofree (Cofree (..))
 import Control.DeepSeq (NFData (..))
@@ -40,7 +40,7 @@ import Data.Functor (($>))
 import Data.Hashable (Hashable (..))
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust, fromJust)
-import Data.Medea.Analysis (TypeNode (..), ReducedSchema(..))
+import Data.Medea.Analysis (TypeNode (..), CompiledSchema(..))
 import qualified Data.HashMap.Strict as HM
 import Data.Medea.JSONType (JSONType (..), typeOf)
 import Data.Medea.Loader
@@ -58,8 +58,7 @@ import Data.Set.NonEmpty
     singleton,
     findMin,
     member,
-    dropWhileAntitone,
-    pattern IsNonEmpty,
+    dropWhileAntitone
   )
 import Data.Text (Text)
 import Data.These (These (..))
@@ -129,6 +128,7 @@ data ValidationError
   | AdditionalPropFoundButBanned Text Text
   | RequiredPropertyIsMissing Text Text
   | OutOfBoundsArrayLength Text Value
+  | ImplementationError Text
   deriving (Eq, Show)
 
 instance Semigroup ValidationError where
@@ -212,16 +212,15 @@ checkPrim v = do
     Null -> pure $ NullSchema :< NullF
     Bool b -> pure $ BooleanSchema :< BooleanF b
     Number n -> pure $ NumberSchema :< NumberF n
-    String s -> do 
-      case par of
-        -- if we are checking against a dependant string, we match against the supplied values
-        Nothing -> pure $ StringSchema :< StringF s
-        Just parIdent -> do
-          scm <- lookupSchema parIdent
-          let validVals = reducedStringVals scm
-          if s `V.elem` validVals || length validVals == 0
-             then pure $ StringSchema :< StringF s
-             else throwError $ NotOneOfOptions v
+    String s ->  case par of
+      -- if we are checking against a dependant string, we match against the supplied values
+      Nothing -> pure $ StringSchema :< StringF s
+      Just parIdent -> do
+        scm <- asks $ lookupSchema parIdent
+        let validVals = stringVals scm
+        if s `V.elem` validVals || length validVals == 0
+           then pure $ StringSchema :< StringF s
+           else throwError $ NotOneOfOptions v
     Array arr -> do
       case par of
         Nothing -> pure ()
@@ -235,20 +234,18 @@ checkPrim v = do
       Nothing -> put (anySet, Nothing) >> (ObjectSchema :<) . ObjectF <$> mapM checkTypes obj
       Just parIdent -> checkObject obj parIdent
   where
-    lookupSchema ident = asks $ fromJust . M.lookup ident . reducedSpec
-    -- check if array length matches the corresponding specification
+    -- check if the array length is within the specification range.
     checkArray arr parIdent = do
-      (minLen, maxLen) <- reducedArray <$> lookupSchema parIdent
-      when (invalidLen (<) minLen || invalidLen (>) maxLen) $
+      scm <- asks $ lookupSchema parIdent
+      let arrLen = V.length arr
+      when (maybe False (arrLen <) (fromIntegral <$> minListLen scm)
+         || maybe False (arrLen >) (fromIntegral <$> maxListLen scm)) $
         throwError . OutOfBoundsArrayLength (textify parIdent) . Array $ arr
-      where
-        invalidLen _ Nothing = False
-        invalidLen f (Just len) = V.length arr `f` fromIntegral len
     -- check if object properties satisfy the corresponding specification.
     checkObject obj parIdent = do
-      (propsSpec, additionalAllowed) <- reducedObject <$> lookupSchema parIdent
+      scm <- asks $ lookupSchema parIdent
       valsAndTypes <- fmap fromJust . HM.filter isJust
-        <$> mergeHashMapsWithKeyM (combine additionalAllowed) propsSpec obj
+        <$> mergeHashMapsWithKeyM (combine $ additionalProps scm) (props scm) obj
       checkedObj <- mapM (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
       pure $ ObjectSchema :< ObjectF checkedObj
         where
@@ -294,17 +291,18 @@ checkCustoms v = do
     isCustom (CustomNode _) = True
     isCustom _              = False
     -- Check value against successfors of a custom node.
-    checkCustom node@(CustomNode ident)= do
-      neighbourhood <- asks (postSet node . typeGraph)
-      case neighbourhood of
-        IsNonEmpty ne -> do
-          put (ne, Just ident)
-          ($> (UserDefined . textify $ ident)) <$> checkTypes v
-        _ -> error "Unreachable code: A CustomNode must have at least one successor."
-    checkCustom _ = error "Unreachable code: All these nodes MUST be custom."
+    checkCustom (CustomNode ident)= do
+      neighbourhood <- asks $ typesAs . lookupSchema ident
+      put (neighbourhood, Just ident)
+      ($> (UserDefined . textify $ ident)) <$> checkTypes v
+    checkCustom _ = throwError $ ImplementationError "Unreachable code: All these nodes MUST be custom."
 
 anySet :: NESet TypeNode
 anySet = singleton AnyNode
 
 textify :: Identifier -> Text
 textify (Identifier t) = t
+
+-- Unsafe function
+lookupSchema :: Identifier -> Schema -> CompiledSchema
+lookupSchema ident = fromJust . M.lookup ident . compiledSchemata

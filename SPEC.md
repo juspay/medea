@@ -180,10 +180,9 @@ situations.
 meant to serve as a list; that is, a homogenously-typed collection of varying
 length.
 
-**Preconditions:** The schema must have a type specifier by which a JSON array
-would be considered valid. Additionally, the schema must not contain a tuple
-specification, nor have a type specifier whose schema contains a tuple
-specification, either directly or transitively (via its own type specifier). 
+**Preconditions:** If the schema has a type specification, said type
+specification must contain the type specifier line ``$array``. Additionally, the
+schema must not contain a tuple specification. 
 
 **Syntax:** A list specification MUST consist of one, or both, of the following, in any order: 
 
@@ -253,8 +252,8 @@ elements may be any JSON value.
 properties for an object, what schemata they must validate against, whether the
 property is optional or required, and whether additional properties are allowed. 
 
-**Preconditions:** The schema must have a type specifier by which a JSON object
-would be considered valid.
+**Preconditions:** If the schema has a type specification, said type
+specification must contain the type specifier line ``$object``.
 
 **Syntax:** An object property specification MUST consist of the following, in
 this order:
@@ -349,8 +348,8 @@ property permission), a JSON object is only considered valid if it is empty
 **Description:** A _string value specification_ describes which values a JSON string
 is allowed to have.
 
-**Preconditions:** The schema must have a type specifier by which a JSON string
-would be considered valid.
+**Preconditions:** If the schema has a type specification, said type
+specification must contain the type specifier line ``$string``. 
 
 **Syntax:** A string value specification MUST consist of the following, in this
 order:
@@ -382,10 +381,9 @@ specifier are the same.
 meant to serve as a tuple; that is, a heterogenously-typed collection of fixed
 length.
 
-**Preconditions:** The schema must have a type specifier by which a JSON array
-would be considered valid. Additionally, the schema must not contain a list
-specification, nor have a type specifier whose schema contains a list
-specification, either directly or transitively (via its own type specifier). 
+**Preconditions:** If the schema has a type specification, said type
+specification must contain the type specifier line ``$array``. Additionally, the
+schema must not contain a list specification.
 
 **Syntax:** A tuple specification MUST consist of the following, in this order:
 

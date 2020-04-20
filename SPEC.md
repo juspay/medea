@@ -237,7 +237,11 @@ JSON array. Additionally:
 * If a maximum length specification is provided, the array must _not_ have more
   elements than the value of the Medea natural number in said specification.
 
-**Postconditions:** If both a minimum length specification and a maximum length
+**Postconditions:** A Medea validatory MUST indicate a unique error condition if
+the identifier in an element schema specification does not correspond to any
+schema defined in the current schema file. 
+
+If both a minimum length specification and a maximum length
 specification are provided, a Medea validator MUST indicate a unique error
 condition if the value of the Medea natural number in the minimum length
 specification is greater than the value of the Medea natural number in the
@@ -421,7 +425,9 @@ on the Medea identifier used in _p(i)_:
 
 Lastly, the array must have a length of _exactly_ _N_.
 
-**Postconditions:** None. 
+**Postconditions:** A Medea validator MUST indicate a unique error condition if
+an identifier in a positional schema specification does not correspond to any
+schema defined in the curent schema file.
 
 **Default:** An array may have any length, and its elements may be any JSON
 value.

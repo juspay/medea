@@ -89,7 +89,7 @@ compileSchemata (Schemata.Specification v) = do
   checkDanglingReferences getTypeRefs DanglingTypeReference m
   checkDanglingReferences getPropertyTypeRefs DanglingTypeRefProp m
   checkDanglingReferences getListTypeRefs DanglingTypeRefList m
-  checkDanglingReferences getListTypeRefs DanglingTypeRefTuple m
+  checkDanglingReferences getTupleTypeRefs DanglingTypeRefTuple m
   checkUnusedSchemata m
   checkAcyclic m
   pure m

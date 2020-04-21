@@ -30,4 +30,6 @@ isSchemaError (Left (IsolatedSchemata _)) = True
 isSchemaError (Left (MissingPropSchemaDefinition _ _)) = True
 isSchemaError (Left (MinimumLengthGreaterThanMaximum _)) = True
 isSchemaError (Left (MultiplePropSchemaDefinition _ _)) = True
+isSchemaError (Left (MissingListSchemaDefinition _ _)) = True
+isSchemaError (Left (MissingTupleSchemaDefinition _ _)) = True
 isSchemaError _ = False

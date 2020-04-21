@@ -6,7 +6,9 @@ import Text.Megaparsec (Parsec, ShowErrorComponent, showErrorComponent)
 data ParseError 
   = IdentifierTooLong Text 
   | LeadingZero Text 
+  | ConflictingSpecRequirements
   | EmptyLengthArraySpec
+  | EmptyArrayElements
   | EmptyStringValuesSpec
   deriving (Eq, Ord, Show)
 

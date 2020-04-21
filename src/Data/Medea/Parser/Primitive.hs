@@ -22,6 +22,7 @@ import qualified Data.ByteString as BS
 import Data.Medea.JSONType (JSONType(..))
 import Data.Medea.Parser.Types (MedeaParser, ParseError(..))
 
+
 -- Identifier
 newtype Identifier = Identifier { toText :: Text }
   deriving (Eq, Ord, Show)

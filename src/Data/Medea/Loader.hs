@@ -51,6 +51,10 @@ data LoaderError
   | -- | A property specifier section has two properties with the same name.
     -- | Arguments are the parent Schema name and the property name.
     MultiplePropSchemaDefinition Text Text
+  | -- | name of the undefined list element type and the schema that references it.
+    MissingListSchemaDefinition Text Text
+  | -- | name of the undefined tuple positional schema and the schema that references it.
+    MissingTupleSchemaDefinition Text Text
   deriving (Show)
 
 -- | Attempt to produce a schema from binary data in memory.
@@ -101,7 +105,9 @@ fromUtf8 ::
 fromUtf8 sourceName utf8 =
   case parse Schemata.parseSpecification sourceName utf8 of
     Left err -> case NE.head . bundleErrors $ err of
-      TrivialError o u e -> throwError . ParserError . TrivialError o u $ e
+      TrivialError o u e ->
+        throwError . ParserError . TrivialError o u $ e
+        
       -- TODO: Handle all kinds of ParseError
       FancyError {} -> throwError IdentifierTooLong
     Right scm -> pure scm
@@ -127,4 +133,8 @@ analyze scm = case runExcept $ compileSchemata scm of
     throwError $ MinimumLengthGreaterThanMaximum (toText ident)
   Left (DuplicatePropName ident prop) -> throwError $
     MultiplePropSchemaDefinition (toText ident) (unwrap prop)
+  Left (DanglingTypeRefList danglingRef parSchema) ->
+    throwError $ MissingListSchemaDefinition (toText danglingRef) (toText parSchema)
+  Left (DanglingTypeRefTuple danglingRef parSchema) ->
+    throwError $ MissingTupleSchemaDefinition (toText danglingRef) (toText parSchema)
   Right g -> pure . Schema $ g

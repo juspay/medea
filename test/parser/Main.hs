@@ -25,4 +25,7 @@ makeParseTestFail fp = do
 makeParseTestPass :: FilePath -> Spec
 makeParseTestPass fp = do
   result <- runIO . runTestM . loadSchemaFromFile $ fp
-  it ("Should parse: " ++ fp) (result `shouldNotSatisfy` isParseError)
+  it ("Should parse: " ++ fp) 
+    (do
+      result `shouldNotSatisfy` isParseError
+    )

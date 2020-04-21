@@ -45,12 +45,16 @@ data AnalysisError
   | DanglingTypeReference Identifier Identifier
   | TypeRelationIsCyclic
   | ReservedDefined Identifier
-  | DefinedButNotUsed Identifier 
+  | DefinedButNotUsed Identifier
   | MinMoreThanMax Identifier
   | DanglingTypeRefProp Identifier Identifier
   | DanglingTypeRefList Identifier Identifier
   | DanglingTypeRefTuple Identifier Identifier
   | DuplicatePropName Identifier MedeaString
+  | PropertyWithoutObject Identifier
+  | ListWithoutArray Identifier
+  | TupleWithoutArray Identifier
+  | StringValsWithoutString Identifier
 
 data TypeNode
   = AnyNode
@@ -108,24 +112,34 @@ compileSchema ::
 compileSchema scm = do
   when (isReserved schemaName && (not . isStartIdent) schemaName)
     $ throwError . ReservedDefined
-    $ schemaName 
+    $ schemaName
   let minListLen = minLength arraySpec
       maxListLen = maxLength arraySpec
   when (isJust minListLen && isJust maxListLen && minListLen > maxListLen) $
     throwError $ MinMoreThanMax schemaName
-  propMap <- foldM go HM.empty (properties objSpec)
+  propMap <- foldM go HM.empty (maybe V.empty properties objSpec)
   let arrType = getArrayTypes (elementType arraySpec) (tupleSpec arraySpec)
       tupleLen = getTupleTypeLen arrType
-  pure $ CompiledSchema {
-      schemaNode      = identToNode . Just $ schemaName,
-      typesAs         = NESet.fromList . defaultToAny . V.toList . fmap (identToNode . Just) $ types,
-      minArrayLen     = minListLen <|> tupleLen,
-      maxArrayLen     = maxListLen <|> tupleLen,
-      arrayTypes      = arrType,
-      props           = propMap,
-      additionalProps = additionalAllowed objSpec,
-      stringVals      = String.toReducedSpec stringValsSpec
-    }
+      hasPropSpec = isJust objSpec
+      compiledScm = CompiledSchema {
+        schemaNode      = identToNode . Just $ schemaName,
+        typesAs         = NESet.fromList . defaultToAny . V.toList . fmap (identToNode . Just) $ types,
+        minArrayLen     = minListLen <|> tupleLen,
+        maxArrayLen     = maxListLen <|> tupleLen,
+        arrayTypes      = arrType,
+        props           = propMap,
+        additionalProps = maybe True additionalAllowed objSpec,
+        stringVals      = String.toReducedSpec stringValsSpec
+      }
+  when (shouldNotHavePropertySpec compiledScm hasPropSpec) $
+    throwError . PropertyWithoutObject $ schemaName
+  when (shouldNotHaveListSpec compiledScm) $
+    throwError . ListWithoutArray $ schemaName
+  when (shouldNotHaveTupleSpec compiledScm) $
+    throwError . TupleWithoutArray $ schemaName
+  when (shouldNotHaveStringSpec compiledScm) $
+    throwError . StringValsWithoutString $ schemaName
+  pure compiledScm
     where
       Schema.Specification schemaName (Type.Specification types)  stringValsSpec arraySpec objSpec
         = scm
@@ -137,7 +151,7 @@ compileSchema scm = do
       defaultToAny xs = case NEList.nonEmpty xs of
         Nothing  -> (NEList.:|) AnyNode []
         Just xs' -> xs'
-      
+
 checkStartSchema ::
   (MonadError AnalysisError m) =>
   M.Map Identifier CompiledSchema ->
@@ -170,7 +184,7 @@ checkUnusedSchemata ::
   m ()
 checkUnusedSchemata m = mapM_ checkUnused . M.keys $ m
   where
-    checkUnused ident 
+    checkUnused ident
       | S.member (CustomNode ident) allReferences = pure ()
       | isStartIdent ident = pure ()
       | otherwise = throwError $ DefinedButNotUsed ident
@@ -215,3 +229,38 @@ getTypesAsGraph = Cyclic.edges . concatMap intoTypesAsEdges . M.elems
 
 intoTypesAsEdges :: CompiledSchema -> [(TypeNode, TypeNode)]
 intoTypesAsEdges scm = fmap (schemaNode scm,) . NEList.toList . NESet.toList . typesAs $ scm
+
+arrayNode :: TypeNode
+arrayNode = PrimitiveNode JSONArray
+
+objectNode :: TypeNode
+objectNode = PrimitiveNode JSONObject
+
+stringNode :: TypeNode
+stringNode = PrimitiveNode JSONString
+
+hasListSpec :: CompiledSchema -> Bool
+hasListSpec scm = case arrayTypes scm of
+  Just (ListType _)  -> True
+  Just (TupleType _) -> False
+  _                  -> isJust $ minArrayLen scm <|> maxArrayLen scm
+
+hasTupleSpec :: CompiledSchema -> Bool
+hasTupleSpec scm = case arrayTypes scm of
+  Just (TupleType _) -> True
+  _                  -> False
+
+hasStringSpec :: CompiledSchema -> Bool
+hasStringSpec = not . V.null . stringVals
+
+shouldNotHavePropertySpec :: CompiledSchema -> Bool -> Bool
+shouldNotHavePropertySpec scm hasPropSpec = hasPropSpec && (not . NESet.member objectNode . typesAs $ scm)
+
+shouldNotHaveListSpec :: CompiledSchema -> Bool
+shouldNotHaveListSpec scm = hasListSpec scm && (not . NESet.member arrayNode . typesAs $ scm)
+
+shouldNotHaveTupleSpec :: CompiledSchema -> Bool
+shouldNotHaveTupleSpec scm = hasTupleSpec scm && (not . NESet.member arrayNode . typesAs $ scm)
+
+shouldNotHaveStringSpec :: CompiledSchema -> Bool
+shouldNotHaveStringSpec scm = hasStringSpec scm && (not . NESet.member stringNode . typesAs $ scm)

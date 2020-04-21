@@ -1,0 +1,7 @@
+$schema $start
+    $type
+        $array
+        $object
+    $string_values
+        "foo"
+        "bar"

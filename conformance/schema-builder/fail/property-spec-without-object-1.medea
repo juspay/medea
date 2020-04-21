@@ -1,0 +1,6 @@
+$schema $start
+    $type
+        $null
+        $number
+    $properties
+        $property-name "foo"

@@ -197,7 +197,18 @@ An additional property permission consists of the following, in this order:
 **Preconditions:** If the schema has a type specification, said type
 specification contains the type specifier line ``$string``. 
 
-**Syntax:**
+**Syntax:** Consists of the following, in this order:
+
+1) Four spaces;
+2) The reserved identifier ``$string_values``;
+3) One newline; and
+4) One or more _string value lines_.
+
+Each string value line consists of the following, in this order:
+
+1) Eight spaces;
+2) One Medea string; and
+3) One newline.
 
 #### Tuple specification
 
@@ -242,3 +253,8 @@ Each type specifier line consists of the following, in this order:
 1) Eight spaces;
 2) _Either_ one identifier _or_ one primitive type identifier; and
 3) One newline.
+
+[ecma-404]: http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
+[d76]: http://www.unicode.org/versions/Unicode5.2.0/ch03.pdf#page=35
+[rfc2119]: https://tools.ietf.org/html/rfc2119
+[categories]: http://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table

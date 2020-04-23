@@ -1,0 +1,4 @@
+$schema $start
+    $type
+        $array
+    $max_length 5

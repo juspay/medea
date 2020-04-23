@@ -1,8 +1,6 @@
 $schema $start
     $type
-        $object
+        $null
+        $number
     $properties
         $property-name "foo"
-        $property-schema foo
-
-$schema foo

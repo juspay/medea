@@ -3,7 +3,7 @@ module Main where
 
 import Prelude hiding (lookup)
 import Control.Monad.Except (runExcept)
-import Data.Aeson (Value, encode, Value(..))
+import Data.Aeson (Value, encode, Value(..), ToJSON, Array, Object)
 import Data.Aeson.Arbitrary
   ( ObjGenOpts(..),
     isArray,
@@ -12,6 +12,7 @@ import Data.Aeson.Arbitrary
     isNumber,
     isObject,
     isString,
+    arbitraryArray,
     arbitraryObj,
     arbitraryValue
   )
@@ -19,6 +20,7 @@ import Data.Either (isLeft, isRight)
 import Data.Medea (Schema, loadSchemaFromFile, validate)
 import Data.HashMap.Strict (lookup)
 import Data.Text (Text)
+import qualified Data.Vector as V
 import Test.Hspec (Spec, describe, hspec, it, runIO, shouldNotSatisfy)
 import Test.Hspec.Core.Spec (SpecM)
 import Test.QuickCheck ((==>), arbitrary, forAll, property, Gen, Property)
@@ -42,49 +44,160 @@ main = hspec $ do
   describe "String with Values Schema" $ do 
     testStringVals "stringVals.medea" ["bar", "baz"]
     testStringVals "stringVals2.medea" [ "accountant", "barber", "bishop", "baker" ]
-  -- Tests for object property checks.
-  describe "Object schema with 1 property"
-    . testObject (arbitraryObj $ ObjGenOpts ["foo"] [] 0 0) "1-property-no-additional-1.medea"
-    $ hasProperty "foo" isBool
-  describe "Object schema with 1 property"
-    . testObject (arbitraryObj $ ObjGenOpts ["foo"] [] 0 0) "1-property-no-additional-2.medea"
-    $ hasProperty "foo" isNull
-  describe "Object schema with 1 property"
-    . testObject (arbitraryObj $ ObjGenOpts [] ["foo"] 0 0) "1-property-no-additional-3.medea"
-    $ hasOptionalProperty "foo" isArray
-  describe "Object schema with 1 property and additional allowed"
-    . testObject (arbitraryObj $ ObjGenOpts ["foo"] [] 0 3) "1-property-additional-1.medea"
-    $ hasProperty "foo" isString
-  describe "Object schema with 1 property and additional allowed"
-    . testObject (arbitraryObj $ ObjGenOpts ["foo"] [] 0 3) "1-property-additional-2.medea"
-    $ hasProperty "foo" isNumber
-  describe "Object schema with 1 property and additional allowed"
-    . testObject (arbitraryObj $ ObjGenOpts ["foo"] [] 0 3) "1-property-additional-3.medea"
-    $ hasOptionalProperty "foo" isObject
-  describe "Object schema with 3 properties"
-    . testObject (arbitraryObj $ ObjGenOpts ["foo", "bar", "bazz"] [] 0 0) "3-property-no-additional-1.medea"
-    $ hasProperty "foo" isBool .&& hasProperty "bazz" isString
-  describe "Object schema with 3 properties"
-    . testObject (arbitraryObj $ ObjGenOpts ["bar", "bazz"] ["foo"] 0 0) "3-property-no-additional-2.medea"
-    $ hasOptionalProperty "foo" isNumber .&& hasProperty "bazz" isNull
-  describe "Object schema with 3 properties and additional allowed"
-    . testObject (arbitraryObj $ ObjGenOpts ["foo", "bar", "bazz"] [] 0 3) "3-property-additional-allowed-1.medea"
-    $ hasProperty "foo" isBool .&& hasProperty "bazz" isString
-  describe "Object schema with 3 properties and additional allowed"
-    . testObject (arbitraryObj $ ObjGenOpts ["bar", "bazz"] ["foo"] 0 3) "3-property-additional-allowed-2.medea"
-    $ hasOptionalProperty "foo" isNumber .&& hasProperty "bazz" isNull
-  -- These tests are for objects where additional are not allowed but are still found.
-  -- The generator is such that additional properties always exist.
-  describe "Object schema with 1 property and no additional allowed"
-    $ testInvalidObject (arbitraryObj $ ObjGenOpts ["foo"] [] 1 3) "1-property-no-additional-1.medea"
-  describe "Object schema with 1 property and no additional allowed"
-    $ testInvalidObject (arbitraryObj $ ObjGenOpts ["foo"] [] 1 3) "1-property-no-additional-2.medea"
-  describe "Object schema with 1 property and no additional allowed"
-    $ testInvalidObject (arbitraryObj $ ObjGenOpts [] ["foo"] 1 3) "1-property-no-additional-3.medea"
-  describe "Object schema with 3 properties and no additional allowed"
-    $ testInvalidObject (arbitraryObj $ ObjGenOpts ["foo", "bar", "bazz"] [] 1 3) "3-property-no-additional-1.medea"
-  describe "Object schema with 3 properties and no additional allowed"
-    $ testInvalidObject (arbitraryObj $ ObjGenOpts ["bar", "bazz"] ["foo"] 1 3) "3-property-no-additional-2.medea"
+  describe "Object schema with 1 property and no additional allowed" $ do
+    testObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["foo"] [] 0 0
+                   , objTestPath = "1-property-no-additional-1.medea"
+                   , objTestPred = hasProperty "foo" isBool
+                   }
+    testObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["foo"] [] 0 0
+                   , objTestPath = "1-property-no-additional-2.medea"
+                   , objTestPred = hasProperty "foo" isNull
+                   }
+    testObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["foo"] [] 0 0
+                   , objTestPath = "1-property-no-additional-3.medea"
+                   , objTestPred = hasProperty "foo" isArray
+                   }
+    testInvalidObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["foo"] [] 1 3
+                   , objTestPath = "1-property-no-additional-1.medea"
+                   , objTestPred = const True
+                   }
+    testInvalidObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["foo"] [] 1 3
+                   , objTestPath = "1-property-no-additional-2.medea"
+                   , objTestPred = const True
+                   }
+    testInvalidObject ObjTestParams
+                   { objTestOpts = ObjGenOpts [] ["foo"] 1 3
+                   , objTestPath = "1-property-no-additional-3.medea"
+                   , objTestPred = const True
+                   }
+  describe "Object schema with 1 property and additional allowed" $ do
+    testObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["foo"] [] 0 3
+                   , objTestPath = "1-property-additional-1.medea"
+                   , objTestPred = hasProperty "foo" isString
+                   }
+    testObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["foo"] [] 0 3
+                   , objTestPath = "1-property-additional-2.medea"
+                   , objTestPred = hasProperty "foo" isNumber
+                   }
+    testObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["foo"] [] 0 3
+                   , objTestPath = "1-property-additional-3.medea"
+                   , objTestPred = hasProperty "foo" isObject
+                   }
+  describe "Object schema with 3 properties and no additional allowed" $ do
+    testObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["foo", "bar", "bazz"] [] 0 0
+                   , objTestPath = "3-property-no-additional-1.medea"
+                   , objTestPred = hasProperty "foo" isBool .&& hasProperty "bazz" isString
+                   }
+    testObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["bar", "bazz"] ["foo"] 0 0
+                   , objTestPath = "3-property-no-additional-2.medea"
+                   , objTestPred = hasOptionalProperty "foo" isNumber .&& hasProperty "bazz" isNull
+                   }
+    testInvalidObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["foo", "bar", "bazz"] [] 1 3
+                   , objTestPath = "3-property-no-additional-1.medea"
+                   , objTestPred = const True
+                   }
+    testInvalidObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["bar", "bazz"] ["foo"] 1 3
+                   , objTestPath = "3-property-no-additional-2.medea"
+                   , objTestPred = const True
+                   }
+  describe "Object schema with 3 properties and additional allowed" $ do
+    testObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["foo", "bar", "bazz"] [] 0 3
+                   , objTestPath = "3-property-additional-allowed-1.medea"
+                   , objTestPred = hasProperty "foo" isBool .&& hasProperty "bazz" isString
+                   }
+    testObject ObjTestParams
+                   { objTestOpts = ObjGenOpts ["bar", "bazz"] ["foo"] 0 3
+                   , objTestPath = "3-property-additional-allowed-2.medea"
+                   , objTestPred = hasOptionalProperty "foo" isNumber .&& hasProperty "bazz" isNull
+                   }
+  describe "Array schema with element_type only" $ do
+    testList ListTestParams
+                   { listTestOpts = (0, 3)
+                   , listTestPath = "list-1.medea"
+                   , elementPred  = isNumber .|| isBool .|| isObject
+                   , lenPred      = const True
+                   }
+    testList ListTestParams
+                   { listTestOpts = (1, 3)
+                   , listTestPath = "list-2.medea"
+                   , elementPred  = isNumber .|| isBool .|| isObject
+                   , lenPred      = const True
+                   }
+  describe "Array schema with length spec only" $ do
+    testList ListTestParams
+                   { listTestOpts = (1, 6)
+                   , listTestPath = "list-3.medea"
+                   , elementPred  = const True
+                   , lenPred      = arrayLenGE 2
+                   }
+    testList ListTestParams
+                   { listTestOpts = (1, 6)
+                   , listTestPath = "list-4.medea"
+                   , elementPred  = const True
+                   , lenPred      = arrayLenLE 5
+                   }
+    testList ListTestParams
+                   { listTestOpts = (1, 6)
+                   , listTestPath = "list-5.medea"
+                   , elementPred  = const True
+                   , lenPred      = arrayLenLE 5 .&& arrayLenGE 3
+                   }
+  describe "Array schema with length and element type" $ do
+    testList ListTestParams
+                   { listTestOpts = (1, 4)
+                   , listTestPath = "list-6.medea"
+                   , elementPred  = isNull .|| isBool .|| isNumber
+                   , lenPred      = arrayLenGE 2 .&& arrayLenLE 3
+                   }
+    testList ListTestParams
+                   { listTestOpts = (1, 4)
+                   , listTestPath = "list-7.medea"
+                   , elementPred  = isNull .|| isBool .|| isNumber
+                   , lenPred      = arrayLenGE 2 .&& arrayLenLE 3
+                   }
+  describe "Array schema with tuple spec" $ do
+    testTuple TupleTestParams
+                   { tupleTestOpts = (3, 4)
+                   , tupleTestPath = "3-tuple.medea"
+                   , tuplePreds = [isNumber .|| isArray, isBool, const True]
+                   }
+    testTuple TupleTestParams
+                   { tupleTestOpts = (1, 3)
+                   , tupleTestPath = "2-tuple.medea"
+                   , tuplePreds = [isObject .|| isNull, isString .|| isNumber]
+                   }
+
+data ObjTestParams = ObjTestParams
+  { objTestOpts :: ObjGenOpts
+  , objTestPath :: FilePath
+  , objTestPred :: Object -> Bool
+  }
+
+data ListTestParams = ListTestParams
+  { listTestOpts :: (Int, Int)
+  , listTestPath :: FilePath
+  , elementPred  :: Value -> Bool
+  , lenPred      :: Array -> Bool
+  }
+
+data TupleTestParams = TupleTestParams
+  { tupleTestOpts :: (Int, Int)
+  , tupleTestPath :: FilePath
+  , tuplePreds    :: [Value -> Bool]
+  }
 
 -- Helpers
 
@@ -97,60 +210,76 @@ f .&& g = (&&) <$> f <*> g
 testAny :: FilePath -> Spec
 testAny fp = do
   scm <- loadAndParse $ prependTestDir fp
-  it ("Should validate anything: " ++ fp) (yesProp arbitraryValue (const True) scm)
+  it ("Should validate anything: " ++ fp) (validationSuccess arbitraryValue (const True) scm)
 
 testSingular :: FilePath -> String -> (Value -> Bool) -> Spec
 testSingular fp name p = do
   scm <- loadAndParse $ prependTestDir fp
-  it ("Should validate " ++ name ++ "s: " ++ fp) (yesProp arbitraryValue p scm)
-  it ("Should not validate non-" ++ name ++ "s: " ++ fp) (noProp arbitraryValue (not . p) scm)
+  it ("Should validate " ++ name ++ "s: " ++ fp) (validationSuccess arbitraryValue p scm)
+  it ("Should not validate non-" ++ name ++ "s: " ++ fp) (validationFail arbitraryValue (not . p) scm)
 
-testObject :: Gen Value -> FilePath -> (Value -> Bool) -> Spec
-testObject gen fp p = do
+testObject :: ObjTestParams -> Spec
+testObject (ObjTestParams opts fp p) = do
   scm <- loadAndParse $ prependTestDir fp
-  it ("Should validate valid objects" ++ ": " ++ fp) (yesProp gen p scm)
-  it ("Should not validate invalid objects" ++ ": " ++ fp) (noProp gen (not . p) scm)
+  it ("Should validate valid objects" ++ ": " ++ fp) (validationSuccess gen p scm)
+  it ("Should not validate invalid objects" ++ ": " ++ fp) (validationFail gen (not . p) scm)
+    where
+      gen = arbitraryObj opts
 
--- Tests for Object values that should always get invalidated.
-testInvalidObject :: Gen Value -> FilePath -> Spec
-testInvalidObject gen fp = do
+testInvalidObject :: ObjTestParams -> Spec
+testInvalidObject (ObjTestParams opts fp p) = do
   scm <- loadAndParse $ prependTestDir fp
-  it ("Should not validate" ++ ": " ++ fp) (noProp gen (const True) scm)
+  it ("Should not validate" ++ ": " ++ fp) (validationFail (arbitraryObj opts) p scm)
+
+testList :: ListTestParams -> Spec
+testList (ListTestParams opts fp pTypes pLen) = do
+  scm <- loadAndParse $ prependTestDir fp
+  it ("Should validate valid lists" ++ ": " ++ fp) (validationSuccess gen p scm)
+  it ("Should not validate invalid lists" ++ ": " ++ fp) (validationFail gen (not . p) scm)
+    where
+      gen = arbitraryArray opts
+      p = all pTypes .&& pLen
+
+testTuple :: TupleTestParams -> Spec
+testTuple (TupleTestParams opts fp preds) = do
+  scm <- loadAndParse $ prependTestDir fp
+  it ("Should validate valid tuples" ++ ": " ++ fp) (validationSuccess gen p scm)
+  it ("Should not validate invalid tuples" ++ ": " ++ fp) (validationFail gen (not . p) scm)
+    where
+      gen = arbitraryArray opts
+      p arr = (and . zipWith ($) preds . V.toList $ arr) && (V.length arr == length preds)
 
 -- "validation succeeded" property
-yesProp :: Gen Value -> (Value -> Bool) -> Schema -> Property
-yesProp gen p scm = property $ forAll gen prop
+validationSuccess :: (ToJSON a, Show a) => Gen a -> (a -> Bool) -> Schema -> Property
+validationSuccess gen p scm = property $ forAll gen prop
   where
     prop v = p v ==> isRight . runExcept . validate scm . encode $ v
 
 -- "validation failed" property
-noProp :: Gen Value -> (Value -> Bool) -> Schema -> Property
-noProp gen p scm = property $ forAll gen prop
+validationFail :: (ToJSON a, Show a) => Gen a -> (a -> Bool) -> Schema -> Property
+validationFail gen p scm = property $ forAll gen prop
   where
     prop v = p v ==> isLeft . runExcept . validate scm . encode $ v
 
 -- Returns true iff the value is an object with the given property and the
 -- property-value satisfies the predicate.
-hasProperty :: Text -> (Value -> Bool) -> Value -> Bool
-hasProperty propName p (Object obj) = maybe False p $ lookup propName obj
-hasProperty _ _ _ = False
+hasProperty :: Text -> (Value -> Bool) -> Object -> Bool
+hasProperty propName p obj = maybe False p $ lookup propName obj
 
 -- Like hasProperty but is also true when the given property is absent.
-hasOptionalProperty :: Text -> (Value -> Bool) -> Value -> Bool
-hasOptionalProperty propName p (Object obj) = maybe True p $ lookup propName obj
-hasOptionalProperty _ _ _ = False
+hasOptionalProperty :: Text -> (Value -> Bool) -> Object -> Bool
+hasOptionalProperty propName p obj = maybe True p $ lookup propName obj
 
 testStringVals :: FilePath -> [String] -> Spec
 testStringVals fp validStrings = do
   scm <- loadAndParse $ prependTestDir fp
-  it ("Should validate " ++ "string is one of " ++ show validStrings ++ "s: " ++ fp) (property . forAll genString . validationIsCorrect $ scm)
+  it ("Should validate only strings in " ++ show validStrings ++ ": " ++ fp) (validationSuccess genString p scm)
   
-  it ("Shouldn't validate " ++ "string is one of " ++ show validStrings ++ "s: " ++ fp) (property . forAll genString . invalidationIsCorrect $ scm)
+  it ("Shouldn't validate strings not in " ++ show validStrings ++ "s: " ++ fp) (validationFail genString (not . p) scm)
   where 
-    validationIsCorrect scm s = s `elem` validStrings ==> isRight . runExcept . validate scm . encode $ s 
-    invalidationIsCorrect scm s  = (s `notElem` validStrings) ==> isLeft . runExcept . validate scm . encode $ s
     genString :: Gen.Gen String
     genString = Gen.oneof [Gen.elements validStrings, arbitrary]
+    p = (`elem` validStrings)
 
 loadAndParse :: FilePath -> SpecM () Schema
 loadAndParse fp = do
@@ -163,3 +292,9 @@ loadAndParse fp = do
 
 prependTestDir :: FilePath -> FilePath
 prependTestDir = ("./conformance/validation/" ++)
+
+arrayLenGE :: Int -> Array -> Bool
+arrayLenGE len arr = V.length arr >= len
+
+arrayLenLE :: Int -> Array -> Bool
+arrayLenLE len arr = V.length arr <= len

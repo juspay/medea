@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -30,7 +31,7 @@ import Control.Monad.Except (MonadError (..))
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader (MonadReader, asks, runReaderT)
 import Control.Monad.State.Strict (MonadState (..), evalStateT, gets)
-import Data.Aeson (Value (..), decode)
+import Data.Aeson (Array, Object, Value (..), decode)
 import qualified Data.ByteString.Lazy as BS
 import Data.ByteString.Lazy (ByteString)
 import Data.Coerce (coerce)
@@ -39,8 +40,8 @@ import Data.Foldable (asum)
 import Data.Functor (($>))
 import Data.Hashable (Hashable (..))
 import qualified Data.Map.Strict as M
-import Data.Maybe (isJust, fromJust)
-import Data.Medea.Analysis (TypeNode (..), CompiledSchema(..))
+import Data.Maybe (isNothing)
+import Data.Medea.Analysis (TypeNode (..), CompiledSchema(..), ArrayType(..))
 import qualified Data.HashMap.Strict as HM
 import Data.Medea.JSONType (JSONType (..), typeOf)
 import Data.Medea.Loader
@@ -61,7 +62,6 @@ import Data.Set.NonEmpty
     dropWhileAntitone
   )
 import Data.Text (Text)
-import Data.These (These (..))
 import Data.Traversable (mapM)
 import qualified Data.Vector as V
 import GHC.Generics (Generic)
@@ -216,66 +216,72 @@ checkPrim v = do
       -- if we are checking against a dependant string, we match against the supplied values
       Nothing -> pure $ StringSchema :< StringF s
       Just parIdent -> do
-        scm <- asks $ lookupSchema parIdent
+        scm <- lookupSchema parIdent
         let validVals = stringVals scm
         if s `V.elem` validVals || null validVals
            then pure $ StringSchema :< StringF s
            else throwError $ NotOneOfOptions v
-    Array arr -> do
-      case par of
-        Nothing -> pure ()
-        Just parIdent -> checkArray arr parIdent
-        -- We currently don't check array contents,
-        -- therefore we punt to AnyNode before we carry on.
-      put (anySet, Nothing)
-      (ArraySchema :<) . ArrayF <$> mapM checkTypes arr
+    Array arr -> case par of
+      Nothing -> put (anySet, Nothing) >> (ArraySchema :<) . ArrayF <$> mapM checkTypes arr
+      Just parIdent -> checkArray arr parIdent
     Object obj -> case par of
       -- Fast Path (no object spec)
       Nothing -> put (anySet, Nothing) >> (ObjectSchema :<) . ObjectF <$> mapM checkTypes obj
       Just parIdent -> checkObject obj parIdent
-  where
-    -- check if the array length is within the specification range.
-    checkArray arr parIdent = do
-      scm <- asks $ lookupSchema parIdent
-      let arrLen = fromIntegral $ V.length arr
-      when (maybe False (arrLen <) (minArrayLen scm)
-        || maybe False (arrLen >) (maxArrayLen scm)) $
-        throwError . OutOfBoundsArrayLength (textify parIdent) . Array $ arr
-    -- check if object properties satisfy the corresponding specification.
-    checkObject obj parIdent = do
-      scm <- asks $ lookupSchema parIdent
-      valsAndTypes <- fmap fromJust . HM.filter isJust
-        <$> mergeHashMapsWithKeyM (combine $ additionalProps scm) (props scm) obj
-      checkedObj <- mapM (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
-      pure $ ObjectSchema :< ObjectF checkedObj
-        where
-          -- combine is used to merge propertySpec with the actual object's property in a monadic context.
-          -- It returns Just (value, the type it must match against) inside the monadic context.
-          -- Returns Nothing when the property must be removed.
-          -- 1. Only property spec found
-          combine _ propName (This (_, isOptional)) = do
-            unless isOptional $
-              throwError . RequiredPropertyIsMissing (textify parIdent) $ propName
-            pure Nothing
-          -- 2. No property spec found i.e. this is an additional property
-          combine additionalAllowed propName (That val) = do
-            unless additionalAllowed $
-              throwError . AdditionalPropFoundButBanned (textify parIdent) $ propName
-            pure $ Just (val, AnyNode)
-          -- 3. We found a property spec to match against.
-          combine _ _ (These (typeNode, _) val) =
-            pure $ Just (val, typeNode)
-          mergeHashMapsWithKeyM
-            :: (Monad m, Eq k, Hashable k)
-            => (k -> These v1 v2 -> m v3)
-            -> HM.HashMap k v1 -> HM.HashMap k v2 -> m (HM.HashMap k v3)
-          mergeHashMapsWithKeyM f hm1 hm2 = mapM (uncurry f) $ pairKeyVal merged
-            where
-              merged = HM.unionWith joinThisThat (This <$> hm1) (That <$> hm2)
-              pairKeyVal :: HM.HashMap k v -> HM.HashMap k (k, v)
-              pairKeyVal = HM.mapWithKey (,)
-              joinThisThat (This x) (That y) = These x y
-              joinThisThat _         _       = error "These cases are not possible"
+
+-- check if the array length is within the specification range.
+checkArray
+  :: (Alternative m, MonadReader Schema m, MonadState (NESet TypeNode, Maybe Identifier) m, MonadError ValidationError m)
+  => Array
+  -> Identifier
+  -> m (Cofree ValidJSONF SchemaInformation)
+checkArray arr parIdent = do
+  scm <- lookupSchema parIdent
+  let arrLen = fromIntegral $ V.length arr
+  when (maybe False (arrLen <) (minArrayLen scm)
+    || maybe False (arrLen >) (maxArrayLen scm)) $
+    throwError . OutOfBoundsArrayLength (textify parIdent) . Array $ arr
+  let valsAndTypes = pairValsWithTypes $ arrayTypes scm
+  checkedArray <- mapM (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
+  pure $ ArraySchema :< ArrayF checkedArray
+    where
+      pairValsWithTypes Nothing = fmap (,AnyNode) arr
+      pairValsWithTypes (Just (ListType node)) = fmap (,node) arr
+      pairValsWithTypes (Just (TupleType nodes)) = V.zip arr nodes
+
+
+-- check if object properties satisfy the corresponding specification.
+checkObject
+  :: (Alternative m, MonadReader Schema m, MonadState (NESet TypeNode, Maybe Identifier) m, MonadError ValidationError m)
+  => Object
+  -> Identifier
+  -> m (Cofree ValidJSONF SchemaInformation)
+checkObject obj parIdent = do
+  scm <- lookupSchema parIdent
+  valsAndTypes <- pairPropertySchemaAndVal obj (props scm) (additionalProps scm) parIdent
+  checkedObj <- mapM (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
+  pure $ ObjectSchema :< ObjectF checkedObj
+
+pairPropertySchemaAndVal
+  :: (Alternative m, MonadReader Schema m, MonadError ValidationError m)
+  => HM.HashMap Text Value
+  -> HM.HashMap Text (TypeNode, Bool)
+  -> Bool
+  -> Identifier
+  -> m (HM.HashMap Text (Value, TypeNode))
+pairPropertySchemaAndVal obj properties extraAllowed parIdent = do
+  mappedObj <- mapM pairProperty $ HM.mapWithKey (,) obj
+  mapM_ isMatched $ HM.mapWithKey (,) properties
+  pure mappedObj
+    where
+      -- maps each property-value with the schema(typeNode) it should validate against
+      pairProperty (propName, v) = case HM.lookup propName properties of
+        Just (typeNode, _) -> pure (v, typeNode)
+        Nothing | extraAllowed -> pure (v, AnyNode)
+                | otherwise    -> throwError . AdditionalPropFoundButBanned (textify parIdent) $ propName
+      -- throwsAn error if a non-optional property was not found in the object
+      isMatched (propName, (_, optional)) = when (isNothing (HM.lookup propName obj) && not optional) $
+        throwError . RequiredPropertyIsMissing (textify parIdent) $ propName
 
 -- checkCustoms removes all non custom nodes from the typeNode set and
 -- checks the Value against each until one succeeds.
@@ -288,14 +294,20 @@ checkCustoms v = do
   customNodes <- gets $ dropWhileAntitone (not . isCustom) . fst
   asum . fmap checkCustom . S.toList $ customNodes
   where
-    isCustom (CustomNode _) = True
-    isCustom _              = False
     -- Check value against successfors of a custom node.
     checkCustom (CustomNode ident)= do
-      neighbourhood <- asks $ typesAs . lookupSchema ident
+      neighbourhood <- typesAs <$> lookupSchema ident
       put (neighbourhood, Just ident)
       ($> (UserDefined . textify $ ident)) <$> checkTypes v
     checkCustom _ = throwError $ ImplementationError "Unreachable code: All these nodes MUST be custom."
+
+lookupSchema ::
+  (MonadReader Schema m, MonadError ValidationError m) => Identifier -> m CompiledSchema
+lookupSchema ident = do
+  x <- asks $ M.lookup ident . compiledSchemata
+  case x of
+    Just scm -> pure scm
+    Nothing -> throwError . ImplementationError $ "Unreachable state: We should be able to find this schema"
 
 anySet :: NESet TypeNode
 anySet = singleton AnyNode
@@ -303,6 +315,6 @@ anySet = singleton AnyNode
 textify :: Identifier -> Text
 textify (Identifier t) = t
 
--- Unsafe function
-lookupSchema :: Identifier -> Schema -> CompiledSchema
-lookupSchema ident = fromJust . M.lookup ident . compiledSchemata
+isCustom :: TypeNode -> Bool
+isCustom (CustomNode _) = True
+isCustom _              = False

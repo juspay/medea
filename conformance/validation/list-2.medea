@@ -1,0 +1,15 @@
+$schema $start
+    $type
+        foo
+
+$schema foo
+    $type
+        $array
+    $element_type
+        bar
+
+$schema bar
+    $type
+        $number
+        $boolean
+        $object

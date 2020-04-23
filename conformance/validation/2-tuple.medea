@@ -1,0 +1,20 @@
+$schema $start
+    $type
+        foo
+
+$schema foo
+    $type
+        $array
+    $tuple
+        bar
+        bazz
+
+$schema bar
+    $type
+        $object
+        $null
+
+$schema bazz
+    $type
+        $string
+        $number

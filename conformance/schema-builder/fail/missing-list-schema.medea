@@ -1,0 +1,10 @@
+$schema $start
+    $type
+        foo
+
+$schema foo
+    $type
+        $array
+    $tuple
+        $number
+        bar

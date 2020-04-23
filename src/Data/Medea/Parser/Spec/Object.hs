@@ -18,9 +18,6 @@ data Specification = Specification {
   additionalAllowed :: Bool
 } deriving (Eq)
 
-defaultSpec :: Specification
-defaultSpec = Specification V.empty True
-
 parseSpecification :: MedeaParser Specification
 parseSpecification = do
   _ <- parseLine 4 (parseReservedChunk "properties")

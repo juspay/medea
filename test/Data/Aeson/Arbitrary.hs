@@ -5,8 +5,8 @@ module Data.Aeson.Arbitrary where
 
 import Control.Monad (replicateM, filterM)
 import Test.QuickCheck (Arbitrary(..), Gen)
-import Test.QuickCheck.Gen (choose, chooseAny)
-import Data.Aeson (Value(..))
+import Test.QuickCheck.Gen (choose)
+import Data.Aeson (Value(..), Array, Object)
 import Control.Monad.Trans (lift)
 import Control.Monad.Reader (ReaderT, runReaderT, asks, local)
 import Test.QuickCheck.Instances.Text ()
@@ -26,8 +26,11 @@ data ObjGenOpts = ObjGenOpts [Text] [Text] Int Int
 arbitraryValue :: Gen Value
 arbitraryValue = runReaderT makeRandomValue 5 -- recursion depth
 
-arbitraryObj :: ObjGenOpts -> Gen Value
+arbitraryObj :: ObjGenOpts -> Gen Object
 arbitraryObj opts = runReaderT (makeRandomObject opts) 2
+
+arbitraryArray :: (Int, Int) -> Gen Array
+arbitraryArray range = runReaderT (makeRandomArray range) 2
 
 isNull :: Value -> Bool
 isNull Null = True
@@ -61,22 +64,25 @@ makeRandomValue = do
   choice <- lift . choose @Word $ (0, if reachedMaxDepth then 3 else 5)
   case choice of
     0 -> pure Null
-    1 -> Bool <$> lift chooseAny
+    1 -> Bool <$> lift arbitrary
     2 -> Number <$> lift arbitrary
     3 -> String <$> lift arbitrary
-    4 -> do
-      len <- lift . choose $ (0, 10)
-      Array <$> V.replicateM len (local dec makeRandomValue)
-    _ -> makeRandomObject (ObjGenOpts [] [] 0 10)
+    4 -> Array <$> makeRandomArray (0, 10)
+    _ -> Object <$> makeRandomObject (ObjGenOpts [] [] 0 10)
 
-makeRandomObject :: ObjGenOpts -> ReaderT Word Gen Value
+makeRandomArray :: (Int, Int) -> ReaderT Word Gen Array
+makeRandomArray range = do
+  len <- lift . choose $ range
+  V.replicateM len (local dec makeRandomValue)
+
+makeRandomObject :: ObjGenOpts -> ReaderT Word Gen Object
 makeRandomObject (ObjGenOpts props optionalProps minAdditional maxAdditional) = do
   entryCount <- lift $ choose (minAdditional, maxAdditional)
   genKeys <- replicateM entryCount $ lift arbitrary
   someOptionalProps <- filterM (\_ -> lift arbitrary) optionalProps
   let keys = genKeys ++ props ++ someOptionalProps
   keyVals <- mapM (\x -> (x,) <$> local dec makeRandomValue) keys
-  pure . Object . HM.fromList $ keyVals
+  pure . HM.fromList $ keyVals
 
 dec :: Word -> Word
 dec = subtract 1

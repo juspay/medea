@@ -21,7 +21,7 @@ data Specification = Specification {
   types :: !Type.Specification,
   stringVals :: !String.Specification,
   array :: !Array.Specification,
-  object :: !Object.Specification
+  object :: !(Maybe Object.Specification)
 }
   deriving (Eq)
 
@@ -32,4 +32,4 @@ parseSpecification = do
     <$> toPermutationWithDefault Type.defaultSpec (try Type.parseSpecification)
     <*> toPermutationWithDefault String.defaultSpec (try String.parseSpecification)
     <*> toPermutationWithDefault Array.defaultSpec (try Array.parseSpecification)
-    <*> toPermutationWithDefault Object.defaultSpec (try Object.parseSpecification)
+    <*> toPermutationWithDefault Nothing (Just <$> try Object.parseSpecification)

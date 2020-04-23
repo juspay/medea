@@ -1,6 +1,6 @@
 $schema $start
     $type
-        $boolean
+        $object
     $properties
         $property-name "foo"
         $property-schema bar

@@ -26,8 +26,6 @@ data LoaderError
     NotUtf8
   | -- | An identifier was longer than allowed.
     IdentifierTooLong
-  | -- | A natural number had a leading 0.
-    LeadingZeroNatural
   | -- | A length specification had no minimum/maximum specification.
     EmptyLengthSpec
   | -- | Parsing failed.
@@ -55,6 +53,14 @@ data LoaderError
     MissingListSchemaDefinition Text Text
   | -- | name of the undefined tuple positional schema and the schema that references it.
     MissingTupleSchemaDefinition Text Text
+  | -- | Schema has a Property specification but no $object type
+    PropertySpecWithoutObjectType Text
+  | -- | Schema has a List specification but no $arry type
+    ListSpecWithoutArrayType Text
+  | -- | Schema has a Tuple specification but no $array type
+    TupleSpecWithoutArrayType Text
+  | -- | Schema has a String specification but no $string type
+    StringSpecWithoutStringType Text
   deriving (Show)
 
 -- | Attempt to produce a schema from binary data in memory.
@@ -137,4 +143,12 @@ analyze scm = case runExcept $ compileSchemata scm of
     throwError $ MissingListSchemaDefinition (toText danglingRef) (toText parSchema)
   Left (DanglingTypeRefTuple danglingRef parSchema) ->
     throwError $ MissingTupleSchemaDefinition (toText danglingRef) (toText parSchema)
+  Left (PropertyWithoutObject schema) ->
+    throwError $ PropertySpecWithoutObjectType (toText schema)
+  Left (ListWithoutArray schema) ->
+    throwError $ ListSpecWithoutArrayType (toText schema)
+  Left (TupleWithoutArray schema) ->
+    throwError $ TupleSpecWithoutArrayType (toText schema)
+  Left (StringValsWithoutString schema) ->
+    throwError $ StringSpecWithoutStringType (toText schema)
   Right g -> pure . Schema $ g

@@ -1,0 +1,4 @@
+$schema $start
+    $type
+        $array
+    $min_length 2

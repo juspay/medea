@@ -1,0 +1,14 @@
+$schema $start
+    $type
+        $array
+    $tuple
+        foo
+        $boolean
+        any
+
+$schema foo
+    $type
+        $number
+        $array
+
+$schema any

@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Data.Medea.Parser.Spec.Schema where
 
@@ -9,6 +8,7 @@ import Control.Applicative.Permutations
   )
 import Data.Medea.Parser.Primitive
   ( Identifier,
+    ReservedIdentifier(..),
     parseIdentifier,
     parseKeyVal,
     parseLine,
@@ -32,7 +32,7 @@ data Specification
 
 parseSpecification :: MedeaParser Specification
 parseSpecification = do
-  schemaName <- parseLine 0 $ parseKeyVal "schema" parseIdentifier
+  schemaName <- parseLine 0 $ parseKeyVal RSchema parseIdentifier
   runPermutation $
     Specification schemaName
       <$> toPermutationWithDefault Type.defaultSpec (try Type.parseSpecification)

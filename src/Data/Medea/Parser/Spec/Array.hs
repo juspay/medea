@@ -1,6 +1,5 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Data.Medea.Parser.Spec.Array where
 
@@ -9,11 +8,12 @@ import Control.Applicative.Permutations (runPermutation, toPermutationWithDefaul
 import Data.Medea.Parser.Primitive
   ( Identifier,
     Natural,
+    ReservedIdentifier(..),
     parseIdentifier,
     parseKeyVal,
     parseLine,
     parseNatural,
-    parseReservedChunk,
+    parseReserved,
   )
 import Data.Medea.Parser.Types (MedeaParser, ParseError (..))
 import Text.Megaparsec (MonadParsec (..), customFailure, many, try)
@@ -64,20 +64,20 @@ parseSpecification = do
 
 parseMinSpec :: MedeaParser (Maybe Natural)
 parseMinSpec =
-  parseLine 4 $ Just <$> parseKeyVal "min_length" parseNatural
+  parseLine 4 $ Just <$> parseKeyVal RMinLength parseNatural
 
 parseMaxSpec :: MedeaParser (Maybe Natural)
 parseMaxSpec =
-  parseLine 4 $ Just <$> parseKeyVal "max_length" parseNatural
+  parseLine 4 $ Just <$> parseKeyVal RMaxLength parseNatural
 
 parseElementType :: MedeaParser (Maybe Identifier)
 parseElementType = do
-  _ <- parseLine 4 $ parseReservedChunk "element_type"
+  _ <- parseLine 4 $ parseReserved RElementType
   element <- parseLine 8 parseIdentifier <|> customFailure EmptyArrayElements
   pure $ Just element
 
 parseTupleSpec :: MedeaParser (Maybe [Identifier])
 parseTupleSpec = do
-  _ <- parseLine 4 $ parseReservedChunk "tuple"
+  _ <- parseLine 4 $ parseReserved RTuple
   elemList <- many $ try $ parseLine 8 parseIdentifier
   pure $ Just elemList

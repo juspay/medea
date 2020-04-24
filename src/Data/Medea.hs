@@ -50,7 +50,7 @@ import Data.Medea.Loader
     loadSchemaFromFile,
     loadSchemaFromHandle,
   )
-import Data.Medea.Parser.Primitive (Identifier (..), startIdentifier)
+import Data.Medea.Parser.Primitive (Identifier (..), ReservedIdentifier(..), identFromReserved)
 import Data.Medea.Schema (Schema (..))
 import Data.Medea.ValidJSON (ValidJSONF (..))
 import qualified Data.Set as S
@@ -149,7 +149,7 @@ validate scm bs = case decode bs of
   Just v -> ValidatedJSON <$> go v
   where
     go v = runReaderT (evalStateT (checkTypes v) (initialSet, Nothing)) scm
-    initialSet = singleton . CustomNode $ startIdentifier
+    initialSet = singleton . CustomNode . identFromReserved $ RStart
 
 -- | Helper for construction of validated JSON from a JSON file.
 validateFromFile ::

@@ -5,6 +5,7 @@ import Text.Megaparsec (Parsec, ShowErrorComponent, showErrorComponent)
 
 data ParseError
   = IdentifierTooLong Text
+  | ExpectedReservedIdentifier Text
   | LeadingZero Text
   | ConflictingSpecRequirements
   | EmptyLengthArraySpec

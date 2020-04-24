@@ -1,13 +1,18 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 
-module Data.Medea.Parser.Spec.Type where
+module Data.Medea.Parser.Spec.Type
+  ( Specification (..),
+    defaultSpec,
+    parseSpecification,
+  )
+where
 
 import Data.Medea.Parser.Primitive
   ( Identifier,
+    ReservedIdentifier(..),
     parseIdentifier,
     parseLine,
-    parseReservedChunk,
+    parseReserved,
   )
 import Data.Medea.Parser.Types (MedeaParser)
 import Data.Vector (Vector)
@@ -20,11 +25,8 @@ newtype Specification = Specification (Vector Identifier)
 defaultSpec :: Specification
 defaultSpec = Specification V.empty
 
-getReferences :: Specification -> [Identifier]
-getReferences (Specification v) = V.toList v
-
 parseSpecification :: MedeaParser Specification
 parseSpecification = do
-  _ <- parseLine 4 $ parseReservedChunk "type"
+  _ <- parseLine 4 $ parseReserved RType
   types <- some . try $ parseLine 8 parseIdentifier
   pure . Specification . V.fromList $ types

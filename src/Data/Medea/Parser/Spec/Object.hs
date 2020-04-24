@@ -1,10 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Data.Medea.Parser.Spec.Object where
 
 import Data.Functor (($>))
-import Data.Medea.Parser.Primitive (parseLine, parseReservedChunk)
+import Data.Medea.Parser.Primitive (ReservedIdentifier (..), parseLine, parseReserved)
 import qualified Data.Medea.Parser.Spec.Property as Property
 import Data.Medea.Parser.Types (MedeaParser)
 import Data.Vector (Vector)
@@ -25,10 +24,10 @@ data Specification
 
 parseSpecification :: MedeaParser Specification
 parseSpecification = do
-  _ <- parseLine 4 (parseReservedChunk "properties")
+  _ <- parseLine 4 (parseReserved RProperties)
   Specification <$> parseProperties <*> parseAdditionalAllowed
   where
     parseProperties = V.fromList <$> many (try Property.parseSpecification)
     parseAdditionalAllowed =
       option False . try . parseLine 8 $
-        parseReservedChunk "additional-properties-allowed" $> True
+        parseReserved RAdditionalPropertiesAllowed $> True

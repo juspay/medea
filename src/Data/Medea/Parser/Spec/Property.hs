@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Data.Medea.Parser.Spec.Property
   ( Specification (..),
@@ -11,10 +10,11 @@ import Data.Functor (($>))
 import Data.Medea.Parser.Primitive
   ( Identifier,
     MedeaString,
+    ReservedIdentifier(..),
     parseIdentifier,
     parseKeyVal,
     parseLine,
-    parseReservedChunk,
+    parseReserved,
     parseString,
   )
 import Data.Medea.Parser.Types (MedeaParser)
@@ -37,10 +37,10 @@ parseSpecification =
   where
     parsePropName =
       parseLine 8 $
-        parseKeyVal "property-name" parseString
+        parseKeyVal RPropertyName parseString
     parsePropSchema =
       option Nothing . try . parseLine 8 $
-        Just <$> parseKeyVal "property-schema" parseIdentifier
+        Just <$> parseKeyVal RPropertySchema parseIdentifier
     parsePropOptional =
       option False . try . parseLine 8 $
-        parseReservedChunk "optional-property" $> True
+        parseReserved ROptionalProperty $> True

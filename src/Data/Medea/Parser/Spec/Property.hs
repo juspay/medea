@@ -10,7 +10,7 @@ import Data.Functor (($>))
 import Data.Medea.Parser.Primitive
   ( Identifier,
     MedeaString,
-    ReservedIdentifier(..),
+    ReservedIdentifier (..),
     parseIdentifier,
     parseKeyVal,
     parseLine,

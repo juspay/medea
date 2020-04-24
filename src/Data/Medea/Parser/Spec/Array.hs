@@ -1,14 +1,19 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Data.Medea.Parser.Spec.Array where
+module Data.Medea.Parser.Spec.Array
+  ( Specification (..),
+    defaultSpec,
+    parseSpecification,
+  )
+where
 
 import Control.Applicative ((<|>))
 import Control.Applicative.Permutations (runPermutation, toPermutationWithDefault)
 import Data.Medea.Parser.Primitive
   ( Identifier,
     Natural,
-    ReservedIdentifier(..),
+    ReservedIdentifier (..),
     parseIdentifier,
     parseKeyVal,
     parseLine,

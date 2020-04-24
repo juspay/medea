@@ -1,6 +1,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Data.Medea.Parser.Spec.Schema where
+module Data.Medea.Parser.Spec.Schema
+  ( Specification (..),
+    parseSpecification,
+  )
+where
 
 import Control.Applicative.Permutations
   ( runPermutation,
@@ -8,7 +12,7 @@ import Control.Applicative.Permutations
   )
 import Data.Medea.Parser.Primitive
   ( Identifier,
-    ReservedIdentifier(..),
+    ReservedIdentifier (..),
     parseIdentifier,
     parseKeyVal,
     parseLine,

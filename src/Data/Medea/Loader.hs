@@ -1,6 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Data.Medea.Loader where
+module Data.Medea.Loader
+  ( LoaderError (..),
+    buildSchema,
+    loadSchemaFromFile,
+    loadSchemaFromHandle,
+  )
+where
 
 import Control.Monad.Except (MonadError (..), runExcept)
 import Control.Monad.IO.Class (MonadIO (..))

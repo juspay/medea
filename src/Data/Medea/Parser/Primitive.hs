@@ -2,7 +2,24 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.Medea.Parser.Primitive where
+module Data.Medea.Parser.Primitive
+  ( Identifier (..),
+    MedeaString (..),
+    Natural,
+    PrimTypeIdentifier (..),
+    ReservedIdentifier (..),
+    identFromReserved,
+    isReserved,
+    isStartIdent,
+    parseIdentifier,
+    parseKeyVal,
+    parseLine,
+    parseNatural,
+    parseReserved,
+    parseString,
+    tryPrimType,
+  )
+where
 
 import Control.Monad (replicateM_, when)
 import qualified Data.ByteString as BS
@@ -120,18 +137,6 @@ reservedToPrim RArray = Just . PrimTypeIdentifier $ JSONArray
 reservedToPrim RNumber = Just . PrimTypeIdentifier $ JSONNumber
 reservedToPrim RString = Just . PrimTypeIdentifier $ JSONString
 reservedToPrim _ = Nothing
-
-forgetPrimType :: PrimTypeIdentifier -> Identifier
-forgetPrimType = identFromReserved . primTypeToReserved
-
-primTypeToReserved :: PrimTypeIdentifier -> ReservedIdentifier
-primTypeToReserved ident = case typeOf ident of
-  JSONNull -> RNull
-  JSONBoolean -> RBoolean
-  JSONObject -> RObject
-  JSONArray -> RArray
-  JSONNumber -> RNumber
-  JSONString -> RString
 
 isReserved :: Identifier -> Bool
 isReserved = isJust . tryReserved . toText

@@ -1,6 +1,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Data.Medea.Parser.Spec.Schemata where
+module Data.Medea.Parser.Spec.Schemata
+  ( Specification (..),
+    parseSpecification,
+  )
+where
 
 import qualified Data.Medea.Parser.Spec.Schema as Schema
 import Data.Medea.Parser.Types (MedeaParser)

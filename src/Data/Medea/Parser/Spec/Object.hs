@@ -1,6 +1,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Data.Medea.Parser.Spec.Object where
+module Data.Medea.Parser.Spec.Object
+  ( Specification (..),
+    parseSpecification,
+  )
+where
 
 import Data.Functor (($>))
 import Data.Medea.Parser.Primitive (ReservedIdentifier (..), parseLine, parseReserved)

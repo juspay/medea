@@ -2,7 +2,14 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TupleSections #-}
 
-module Data.Medea.Analysis where
+module Data.Medea.Analysis
+  ( AnalysisError (..),
+    ArrayType (..),
+    CompiledSchema (..),
+    TypeNode (..),
+    compileSchemata,
+  )
+where
 
 import Algebra.Graph.Acyclic.AdjacencyMap (toAcyclic)
 import qualified Algebra.Graph.AdjacencyMap as Cyclic

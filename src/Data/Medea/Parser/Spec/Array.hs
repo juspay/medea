@@ -38,9 +38,6 @@ data Specification
 defaultSpec :: Specification
 defaultSpec = Specification Nothing Nothing Nothing Nothing
 
-combineSpec :: Specification -> Specification -> Specification
-combineSpec (Specification a1 b1 c1 d1) (Specification a2 b2 c2 d2) = Specification (a1 <|> a2) (b1 <|> b2) (c1 <|> c2) (d1 <|> d2)
-
 parseSpecification :: MedeaParser Specification
 parseSpecification = do
   spec <- try permute

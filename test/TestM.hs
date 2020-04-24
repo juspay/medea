@@ -1,11 +1,21 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module TestM where
+module TestM
+  ( TestM (..),
+    isParseError,
+    isSchemaError,
+    listMedeaFiles,
+    runTestM,
+  )
+where
 
 import Control.Monad.Except (ExceptT, MonadError, runExceptT)
 import Control.Monad.IO.Class (MonadIO)
+import Data.List (sort)
 import Data.Medea (LoaderError (..))
+import System.Directory (listDirectory)
+import System.FilePath ((</>), isExtensionOf)
 
 newtype TestM a = TestM (ExceptT LoaderError IO a)
   deriving (Functor, Applicative, Monad, MonadError LoaderError, MonadIO)
@@ -36,3 +46,6 @@ isSchemaError (Left (ListSpecWithoutArrayType _)) = True
 isSchemaError (Left (TupleSpecWithoutArrayType _)) = True
 isSchemaError (Left (StringSpecWithoutStringType _)) = True
 isSchemaError _ = False
+
+listMedeaFiles :: FilePath -> IO [FilePath]
+listMedeaFiles dir = fmap (dir </>) . sort . filter (isExtensionOf ".medea") <$> listDirectory dir

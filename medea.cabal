@@ -75,6 +75,7 @@ test-suite conformance-parser
                         filepath >= 1.4.2.1 && < 1.5.0.0
   ghc-options:          -Wall -Wcompat -Wincomplete-record-updates
                         -Wincomplete-uni-patterns -Wredundant-constraints
+                        -O2 -threaded -with-rtsopts=-N
   hs-source-dirs:       test/parser, 
                         test
   default-language:     Haskell2010
@@ -92,6 +93,7 @@ test-suite conformance-schema-builder
                         filepath >= 1.4.2.1 && < 1.5.0.0
   ghc-options:          -Wall -Wcompat -Wincomplete-record-updates
                         -Wincomplete-uni-patterns -Wredundant-constraints
+                        -O2 -threaded -with-rtsopts=-N
   hs-source-dirs:       test/schema-builder, 
                         test
   default-language:     Haskell2010
@@ -117,6 +119,7 @@ test-suite quickcheck-validator
                         unordered-containers >= 0.2.10.0 && < 0.3.0.0
   ghc-options:          -Wall -Wcompat -Wincomplete-record-updates
                         -Wincomplete-uni-patterns -Wredundant-constraints
+                        -O2 -threaded -with-rtsopts=-N
   hs-source-dirs:       test/validator-quickcheck,
                         test
   default-language:     Haskell2010

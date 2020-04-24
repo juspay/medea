@@ -3,18 +3,17 @@
 
 module Data.Aeson.Arbitrary where
 
-import Control.Monad (replicateM, filterM)
-import Test.QuickCheck (Arbitrary(..), Gen)
-import Test.QuickCheck.Gen (choose)
-import Data.Aeson (Value(..), Array, Object)
+import Control.Monad (filterM, replicateM)
+import Control.Monad.Reader (ReaderT, asks, local, runReaderT)
 import Control.Monad.Trans (lift)
-import Control.Monad.Reader (ReaderT, runReaderT, asks, local)
-import Test.QuickCheck.Instances.Text ()
-import Test.QuickCheck.Instances.Scientific ()
-
-import qualified Data.Vector as V
+import Data.Aeson (Array, Object, Value (..))
 import qualified Data.HashMap.Strict as HM
 import Data.Text (Text)
+import qualified Data.Vector as V
+import Test.QuickCheck (Arbitrary (..), Gen)
+import Test.QuickCheck.Gen (choose)
+import Test.QuickCheck.Instances.Scientific ()
+import Test.QuickCheck.Instances.Text ()
 
 -- Takes 4 fields:
 -- required properties,

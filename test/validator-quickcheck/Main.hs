@@ -205,24 +205,27 @@ main = hspec . parallel $ do
           tuplePreds = [isObject .|| isNull, isString .|| isNumber]
         }
 
-data ObjTestParams = ObjTestParams
-  { objTestOpts :: ObjGenOpts,
-    objTestPath :: FilePath,
-    objTestPred :: Object -> Bool
-  }
+data ObjTestParams
+  = ObjTestParams
+      { objTestOpts :: ObjGenOpts,
+        objTestPath :: FilePath,
+        objTestPred :: Object -> Bool
+      }
 
-data ListTestParams = ListTestParams
-  { listTestOpts :: (Int, Int),
-    listTestPath :: FilePath,
-    elementPred :: Value -> Bool,
-    lenPred :: Array -> Bool
-  }
+data ListTestParams
+  = ListTestParams
+      { listTestOpts :: (Int, Int),
+        listTestPath :: FilePath,
+        elementPred :: Value -> Bool,
+        lenPred :: Array -> Bool
+      }
 
-data TupleTestParams = TupleTestParams
-  { tupleTestOpts :: (Int, Int),
-    tupleTestPath :: FilePath,
-    tuplePreds :: [Value -> Bool]
-  }
+data TupleTestParams
+  = TupleTestParams
+      { tupleTestOpts :: (Int, Int),
+        tupleTestPath :: FilePath,
+        tuplePreds :: [Value -> Bool]
+      }
 
 -- Helpers
 

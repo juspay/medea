@@ -1,30 +1,33 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts #-}
 
 module Data.Medea.Parser.Primitive where
 
-import Prelude hiding (head)
-import Control.Monad (when, replicateM_)
-import Data.Char (isDigit, isSeparator, isControl)
-import Data.Maybe (isJust)
-import Data.Hashable (Hashable (..))
-import Data.Text (Text, cons, head, unpack, pack)
-import Data.Text.Encoding (encodeUtf8)
+import Control.Monad (replicateM_, when)
+import qualified Data.ByteString as BS
+import Data.Char (isControl, isDigit, isSeparator)
 import Data.Functor (($>))
-import Text.Megaparsec (chunk, customFailure, single, manyTill,
-                        takeWhile1P, (<|>))
+import Data.Hashable (Hashable (..))
+import Data.Maybe (isJust)
+import Data.Medea.JSONType (JSONType (..))
+import Data.Medea.Parser.Types (MedeaParser, ParseError (..))
+import Data.Text (Text, cons, head, pack, unpack)
+import Data.Text.Encoding (encodeUtf8)
+import Text.Megaparsec
+  ( (<|>),
+    chunk,
+    customFailure,
+    manyTill,
+    single,
+    takeWhile1P,
+  )
 import Text.Megaparsec.Char (char, eol)
 import Text.Megaparsec.Char.Lexer (charLiteral)
-
-import qualified Data.ByteString as BS
-
-import Data.Medea.JSONType (JSONType(..))
-import Data.Medea.Parser.Types (MedeaParser, ParseError(..))
-
+import Prelude hiding (head)
 
 -- Identifier
-newtype Identifier = Identifier { toText :: Text }
+newtype Identifier = Identifier {toText :: Text}
   deriving (Eq, Ord, Show)
 
 parseIdentifier :: MedeaParser Identifier
@@ -48,34 +51,38 @@ parseReserved = do
 tryReserved :: Identifier -> Maybe ReservedIdentifier
 tryReserved (Identifier ident) =
   if head ident == '$'
-  then Just (ReservedIdentifier ident)
-  else Nothing
+    then Just (ReservedIdentifier ident)
+    else Nothing
 
 forgetReserved :: ReservedIdentifier -> Identifier
 forgetReserved (ReservedIdentifier ident) = Identifier ident
 
-newtype PrimTypeIdentifier = PrimTypeIdentifier { typeOf :: JSONType }
+newtype PrimTypeIdentifier = PrimTypeIdentifier {typeOf :: JSONType}
   deriving (Eq)
 
 parsePrimType :: MedeaParser PrimTypeIdentifier
-parsePrimType = PrimTypeIdentifier <$>
-                (chunk "$null" $> JSONNull <|>
-                 chunk "$boolean" $> JSONBoolean <|>
-                 chunk "$object" $> JSONObject <|>
-                 chunk "$array" $> JSONArray <|>
-                 chunk "$number" $> JSONNumber <|>
-                 chunk "$string" $> JSONString)
+parsePrimType =
+  PrimTypeIdentifier
+    <$> ( chunk "$null" $> JSONNull
+            <|> chunk "$boolean" $> JSONBoolean
+            <|> chunk "$object" $> JSONObject
+            <|> chunk "$array" $> JSONArray
+            <|> chunk "$number" $> JSONNumber
+            <|> chunk "$string" $> JSONString
+        )
 
 tryPrimType :: Identifier -> Maybe PrimTypeIdentifier
-tryPrimType (Identifier ident) = PrimTypeIdentifier <$>
-  (case ident of
-    "$null" -> Just JSONNull
-    "$boolean" -> Just JSONBoolean
-    "$object" -> Just JSONObject
-    "$array" -> Just JSONArray
-    "$number" -> Just JSONNumber
-    "$string" -> Just JSONString
-    _ -> Nothing)
+tryPrimType (Identifier ident) =
+  PrimTypeIdentifier
+    <$> ( case ident of
+            "$null" -> Just JSONNull
+            "$boolean" -> Just JSONBoolean
+            "$object" -> Just JSONObject
+            "$array" -> Just JSONArray
+            "$number" -> Just JSONNumber
+            "$string" -> Just JSONString
+            _ -> Nothing
+        )
 
 forgetPrimType :: PrimTypeIdentifier -> Identifier
 forgetPrimType ident = case typeOf ident of
@@ -98,12 +105,13 @@ type Natural = Word
 parseNatural :: MedeaParser Natural
 parseNatural = do
   digits <- takeWhile1P (Just "digits") isDigit
-  when (head digits == '0') $
-    customFailure . LeadingZero $ digits
+  when (head digits == '0')
+    $ customFailure . LeadingZero
+    $ digits
   pure . read . unpack $ digits
 
 -- String
-newtype MedeaString = MedeaString { unwrap :: Text }
+newtype MedeaString = MedeaString {unwrap :: Text}
   deriving (Eq, Ord, Show, Hashable)
 
 parseString :: MedeaParser MedeaString
@@ -112,12 +120,12 @@ parseString = do
   pure . MedeaString . pack $ string
 
 -- Helpers
-checkedConstruct :: 
+checkedConstruct ::
   (Text -> a) -> Text -> MedeaParser a
 checkedConstruct f t =
   if (> 32) . BS.length . encodeUtf8 $ t
-  then customFailure . IdentifierTooLong $ t
-  else pure . f $ t
+    then customFailure . IdentifierTooLong $ t
+    else pure . f $ t
 
 {-# INLINE parseReservedChunk #-}
 parseReservedChunk :: Text -> MedeaParser ReservedIdentifier

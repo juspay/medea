@@ -2,15 +2,12 @@
 
 module Data.Medea.Parser.Spec.Schemata where
 
-import Text.Megaparsec (MonadParsec(..), sepBy1)
-import Text.Megaparsec.Char (eol)
-import Data.Vector (Vector)
-
-import qualified Data.Vector as V
-
-import Data.Medea.Parser.Types (MedeaParser)
-
 import qualified Data.Medea.Parser.Spec.Schema as Schema
+import Data.Medea.Parser.Types (MedeaParser)
+import Data.Vector (Vector)
+import qualified Data.Vector as V
+import Text.Megaparsec (MonadParsec (..), sepBy1)
+import Text.Megaparsec.Char (eol)
 
 newtype Specification = Specification (Vector Schema.Specification)
 

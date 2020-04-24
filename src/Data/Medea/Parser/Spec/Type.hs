@@ -3,19 +3,21 @@
 
 module Data.Medea.Parser.Spec.Type where
 
-import Text.Megaparsec (MonadParsec(..), some)
-import Data.Vector (Vector)   
-
-import qualified Data.Vector as V
-
-import Data.Medea.Parser.Primitive (Identifier, parseReservedChunk,
-                                    parseIdentifier, parseLine)
+import Data.Medea.Parser.Primitive
+  ( Identifier,
+    parseIdentifier,
+    parseLine,
+    parseReservedChunk,
+  )
 import Data.Medea.Parser.Types (MedeaParser)
+import Data.Vector (Vector)
+import qualified Data.Vector as V
+import Text.Megaparsec (MonadParsec (..), some)
 
 newtype Specification = Specification (Vector Identifier)
   deriving (Eq)
 
-defaultSpec :: Specification 
+defaultSpec :: Specification
 defaultSpec = Specification V.empty
 
 getReferences :: Specification -> [Identifier]

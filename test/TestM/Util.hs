@@ -1,5 +1,6 @@
 module TestM.Util
-  (listMedeaFiles)
+  ( listMedeaFiles,
+  )
 where
 
 import Data.List (sort)

@@ -3,10 +3,9 @@
 
 module TestM where
 
+import Control.Monad.Except (ExceptT, MonadError, runExceptT)
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Except (MonadError, ExceptT, runExceptT)
-
-import Data.Medea (LoaderError(..))
+import Data.Medea (LoaderError (..))
 
 newtype TestM a = TestM (ExceptT LoaderError IO a)
   deriving (Functor, Applicative, Monad, MonadError LoaderError, MonadIO)
@@ -18,7 +17,7 @@ isParseError :: Either LoaderError a -> Bool
 isParseError (Left NotUtf8) = True
 isParseError (Left IdentifierTooLong) = True
 isParseError (Left (ParserError _)) = True
-isParseError _  = False
+isParseError _ = False
 
 isSchemaError :: Either LoaderError a -> Bool
 isSchemaError (Left StartSchemaMissing) = True

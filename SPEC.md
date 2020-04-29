@@ -266,7 +266,7 @@ this order:
 2) The reserved identifier ``$properties``;
 3) A newline;
 4) Zero or more _object property specifier sections_; and
-5) An optional _additional property permission_.
+5) An optional _additional property declaration_.
 
 Each object property specifier section MUST consist of the following, in this
 order:
@@ -298,10 +298,15 @@ An optional property declaration MUST consist of the following, in this order:
 2) The reserved identifier ``$optional-property``; and
 3) A newline.
 
-An additional property permission MUST consist of the following, in this order:
+An additional property declaration MUST consist of the following, in this order:
 
 1) Eight space symbols;
-2) The reserved identifier ``$additional-properties-allowed``; and
+2) The reserved identifier ``$additional-properties-allowed``;
+3) A newline;
+4) The reserved identifier ``$additional-property-schema``;
+5) A single space symbol;
+6) _Either_ a Medea identifer, or one of ``$null``, ``$boolean``, ``$object``,
+  ``$array``, ``$number``, ``$string``; and
 3) A newline.
 
 **Semantics:** A JSON value is considered valid by this specifier if it a JSON
@@ -316,9 +321,12 @@ all hold:
 * If a corresponding optional property declaration is _not_ provided, said 
   property is defined (that is, is not ``undefined``).
 
-Furthermore, if the additional property permission is _absent_, no property is defined
+Furthermore, if the additional property declaration is _absent_, no property is defined
 for the object _other_ than those given by some object property specifier
-section. 
+section. If the additional property declaration is present, any value of any
+property _other_ than those given by some object property specifier section must
+be valid by the schema named in the identifier given in the additional property
+declaration.
 
 A property value is always valid by no property schema line. Otherwise, these 
 validation rules apply, based on the naming identifier:

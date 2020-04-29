@@ -1,32 +1,46 @@
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Data.Medea.Parser.Spec.Property
-  (Specification(..), parseSpecification) where
+  ( Specification (..),
+    parseSpecification,
+  )
+where
 
-import           Data.Functor                (($>))
-import           Text.Megaparsec             (MonadParsec (..), option, try)
-import           Data.Medea.Parser.Primitive (Identifier, MedeaString,
-                                              parseIdentifier, parseLine,
-                                              parseReservedChunk, parseString,
-                                              parseKeyVal)
-import           Data.Medea.Parser.Types     (MedeaParser)
+import Data.Functor (($>))
+import Data.Medea.Parser.Primitive
+  ( Identifier,
+    MedeaString,
+    ReservedIdentifier (..),
+    parseIdentifier,
+    parseKeyVal,
+    parseLine,
+    parseReserved,
+    parseString,
+  )
+import Data.Medea.Parser.Types (MedeaParser)
+import Text.Megaparsec (MonadParsec (..), option, try)
 
-data Specification = Specification {
-  propName :: MedeaString,
-  propSchema :: Maybe Identifier,
-  propOptional :: Bool
-} deriving (Eq)
+data Specification
+  = Specification
+      { propName :: MedeaString,
+        propSchema :: Maybe Identifier,
+        propOptional :: Bool
+      }
+  deriving (Eq)
 
 parseSpecification :: MedeaParser Specification
-parseSpecification = Specification
-  <$> parsePropName
-  <*> parsePropSchema
-  <*> parsePropOptional
-    where 
-      parsePropName = parseLine 8 $
-        parseKeyVal "property-name" parseString
-      parsePropSchema = option Nothing . try . parseLine 8 $
-        Just <$> parseKeyVal "property-schema" parseIdentifier
-      parsePropOptional = option False . try . parseLine 8 $
-        parseReservedChunk "optional-property" $> True
+parseSpecification =
+  Specification
+    <$> parsePropName
+    <*> parsePropSchema
+    <*> parsePropOptional
+  where
+    parsePropName =
+      parseLine 8 $
+        parseKeyVal RPropertyName parseString
+    parsePropSchema =
+      option Nothing . try . parseLine 8 $
+        Just <$> parseKeyVal RPropertySchema parseIdentifier
+    parsePropOptional =
+      option False . try . parseLine 8 $
+        parseReserved ROptionalProperty $> True

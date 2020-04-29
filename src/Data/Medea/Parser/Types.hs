@@ -1,11 +1,12 @@
-module Data.Medea.Parser.Types where 
+module Data.Medea.Parser.Types (MedeaParser, ParseError (..)) where
 
 import Data.Text (Text)
 import Text.Megaparsec (Parsec, ShowErrorComponent, showErrorComponent)
 
-data ParseError 
-  = IdentifierTooLong Text 
-  | LeadingZero Text 
+data ParseError
+  = IdentifierTooLong Text
+  | ExpectedReservedIdentifier Text
+  | LeadingZero Text
   | ConflictingSpecRequirements
   | EmptyLengthArraySpec
   | EmptyArrayElements

@@ -11,14 +11,13 @@ import Test.Hspec
     runIO,
     shouldSatisfy,
   )
-import TestM.Util (listMedeaFiles)
-import TestM (isSchemaError, runTestM)
+import TestM (isSchemaError, listMedeaFiles, runTestM)
 
 main :: IO ()
 main = do
   let failDir = "./conformance/schema-builder/fail"
-      passDir = "./conformance/schema-builder/pass"
-  failFiles <- listMedeaFiles failDir 
+  let passDir = "./conformance/schema-builder/pass"
+  failFiles <- listMedeaFiles failDir
   passFiles <- listMedeaFiles passDir
   hspec $ do
     describe "Invalid schemata cases" . traverse_ makeFailTest $ failFiles

@@ -1,6 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Data.Medea.Loader where
+module Data.Medea.Loader
+  ( LoaderError (..),
+    buildSchema,
+    loadSchemaFromFile,
+    loadSchemaFromHandle,
+  )
+where
 
 import Control.Monad.Except (MonadError (..), runExcept)
 import Control.Monad.IO.Class (MonadIO (..))
@@ -8,7 +14,7 @@ import Data.ByteString (ByteString, hGetContents, readFile)
 import qualified Data.List.NonEmpty as NE
 import Data.Medea.Analysis
   ( AnalysisError (..),
-    compileSchemata
+    compileSchemata,
   )
 import Data.Medea.Parser.Primitive (toText, unwrap)
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
@@ -113,7 +119,6 @@ fromUtf8 sourceName utf8 =
     Left err -> case NE.head . bundleErrors $ err of
       TrivialError o u e ->
         throwError . ParserError . TrivialError o u $ e
-        
       -- TODO: Handle all kinds of ParseError
       FancyError {} -> throwError IdentifierTooLong
     Right scm -> pure scm
@@ -123,13 +128,13 @@ analyze ::
   Schemata.Specification ->
   m Schema
 analyze scm = case runExcept $ compileSchemata scm of
-  Left (DuplicateSchemaName ident) -> 
+  Left (DuplicateSchemaName ident) ->
     throwError $ MultipleSchemaDefinition (toText ident)
   Left NoStartSchema -> throwError StartSchemaMissing
   Left (DanglingTypeReference danglingRef parSchema) ->
     throwError $ MissingSchemaDefinition (toText danglingRef) (toText parSchema)
   Left TypeRelationIsCyclic -> throwError SelfTypingSchema
-  Left (ReservedDefined ident) -> 
+  Left (ReservedDefined ident) ->
     throwError $ SchemaNameReserved (toText ident)
   Left (DefinedButNotUsed ident) ->
     throwError $ IsolatedSchemata (toText ident)
@@ -137,8 +142,9 @@ analyze scm = case runExcept $ compileSchemata scm of
     throwError $ MissingPropSchemaDefinition (toText danglingRef) (toText parSchema)
   Left (MinMoreThanMax ident) ->
     throwError $ MinimumLengthGreaterThanMaximum (toText ident)
-  Left (DuplicatePropName ident prop) -> throwError $
-    MultiplePropSchemaDefinition (toText ident) (unwrap prop)
+  Left (DuplicatePropName ident prop) ->
+    throwError $
+      MultiplePropSchemaDefinition (toText ident) (unwrap prop)
   Left (DanglingTypeRefList danglingRef parSchema) ->
     throwError $ MissingListSchemaDefinition (toText danglingRef) (toText parSchema)
   Left (DanglingTypeRefTuple danglingRef parSchema) ->

@@ -1,19 +1,24 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 
-module Data.Medea.Parser.Spec.Array where
+module Data.Medea.Parser.Spec.Array
+  ( Specification (..),
+    defaultSpec,
+    parseSpecification,
+  )
+where
 
 import Control.Applicative ((<|>))
 import Control.Applicative.Permutations (runPermutation, toPermutationWithDefault)
 import Data.Medea.Parser.Primitive
   ( Identifier,
     Natural,
+    ReservedIdentifier (..),
     parseIdentifier,
     parseKeyVal,
     parseLine,
     parseNatural,
-    parseReservedChunk,
+    parseReserved,
   )
 import Data.Medea.Parser.Types (MedeaParser, ParseError (..))
 import Text.Megaparsec (MonadParsec (..), customFailure, many, try)
@@ -32,9 +37,6 @@ data Specification
 
 defaultSpec :: Specification
 defaultSpec = Specification Nothing Nothing Nothing Nothing
-
-combineSpec :: Specification -> Specification -> Specification
-combineSpec (Specification a1 b1 c1 d1) (Specification a2 b2 c2 d2) = Specification (a1 <|> a2) (b1 <|> b2) (c1 <|> c2) (d1 <|> d2)
 
 parseSpecification :: MedeaParser Specification
 parseSpecification = do
@@ -64,20 +66,20 @@ parseSpecification = do
 
 parseMinSpec :: MedeaParser (Maybe Natural)
 parseMinSpec =
-  parseLine 4 $ Just <$> parseKeyVal "min_length" parseNatural
+  parseLine 4 $ Just <$> parseKeyVal RMinLength parseNatural
 
 parseMaxSpec :: MedeaParser (Maybe Natural)
 parseMaxSpec =
-  parseLine 4 $ Just <$> parseKeyVal "max_length" parseNatural
+  parseLine 4 $ Just <$> parseKeyVal RMaxLength parseNatural
 
 parseElementType :: MedeaParser (Maybe Identifier)
 parseElementType = do
-  _ <- parseLine 4 $ parseReservedChunk "element_type"
+  _ <- parseLine 4 $ parseReserved RElementType
   element <- parseLine 8 parseIdentifier <|> customFailure EmptyArrayElements
   pure $ Just element
 
 parseTupleSpec :: MedeaParser (Maybe [Identifier])
 parseTupleSpec = do
-  _ <- parseLine 4 $ parseReservedChunk "tuple"
+  _ <- parseLine 4 $ parseReserved RTuple
   elemList <- many $ try $ parseLine 8 parseIdentifier
   pure $ Just elemList

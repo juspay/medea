@@ -1,7 +1,19 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Data.Aeson.Arbitrary where
+module Data.Aeson.Arbitrary
+  ( ObjGenOpts(..),
+    arbitraryArray,
+    arbitraryObj,
+    arbitraryValue,
+    isArray,
+    isBool,
+    isNull,
+    isNumber,
+    isObject,
+    isString,
+  )
+where
 
 import Control.Monad (filterM, replicateM)
 import Control.Monad.Reader (ReaderT, asks, local, runReaderT)

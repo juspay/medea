@@ -2,7 +2,14 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TupleSections #-}
 
-module Data.Medea.Analysis where
+module Data.Medea.Analysis
+  ( AnalysisError (..),
+    ArrayType (..),
+    CompiledSchema (..),
+    TypeNode (..),
+    compileSchemata,
+  )
+where
 
 import Algebra.Graph.Acyclic.AdjacencyMap (toAcyclic)
 import qualified Algebra.Graph.AdjacencyMap as Cyclic
@@ -20,9 +27,10 @@ import Data.Medea.Parser.Primitive
     MedeaString (..),
     Natural,
     PrimTypeIdentifier (..),
+    ReservedIdentifier (..),
+    identFromReserved,
     isReserved,
     isStartIdent,
-    startIdentifier,
     tryPrimType,
     typeOf,
   )
@@ -165,7 +173,7 @@ checkStartSchema ::
   (MonadError AnalysisError m) =>
   M.Map Identifier CompiledSchema ->
   m ()
-checkStartSchema m = case M.lookup startIdentifier m of
+checkStartSchema m = case M.lookup (identFromReserved RStart) m of
   Nothing -> throwError NoStartSchema
   Just _ -> pure ()
 

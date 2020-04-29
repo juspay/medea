@@ -11,8 +11,7 @@ import Test.Hspec
     runIO,
     shouldSatisfy,
   )
-import TestM (isSchemaError, runTestM)
-import TestM.Util (listMedeaFiles)
+import TestM (isSchemaError, listMedeaFiles, runTestM)
 
 main :: IO ()
 main = do

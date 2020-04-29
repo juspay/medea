@@ -3,8 +3,7 @@ module Main where
 import Data.Foldable (traverse_)
 import Data.Medea (loadSchemaFromFile)
 import Test.Hspec (Spec, describe, hspec, it, runIO, shouldNotSatisfy, shouldSatisfy)
-import TestM (isParseError, runTestM)
-import TestM.Util (listMedeaFiles)
+import TestM (isParseError, listMedeaFiles, runTestM)
 
 main :: IO ()
 main = do

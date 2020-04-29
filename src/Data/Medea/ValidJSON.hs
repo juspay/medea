@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveFunctor #-}
 
-module Data.Medea.ValidJSON where
+module Data.Medea.ValidJSON (ValidJSONF(..)) where
 
 import Control.DeepSeq (NFData (..))
 import Data.Aeson (Value (..))

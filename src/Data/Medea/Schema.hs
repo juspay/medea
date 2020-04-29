@@ -1,4 +1,4 @@
-module Data.Medea.Schema where
+module Data.Medea.Schema (Schema (..)) where
 
 import Data.Map.Strict (Map)
 import Data.Medea.Analysis (CompiledSchema)

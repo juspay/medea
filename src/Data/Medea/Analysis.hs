@@ -35,7 +35,7 @@ import Data.Medea.Parser.Primitive
     typeOf,
   )
 import Data.Medea.Parser.Spec.Array (elementType, maxLength, minLength, tupleSpec)
-import Data.Medea.Parser.Spec.Object (additionalAllowed, properties)
+import Data.Medea.Parser.Spec.Object (additionalAllowed, additionalSchema, properties)
 import Data.Medea.Parser.Spec.Property (propName, propOptional, propSchema)
 import qualified Data.Medea.Parser.Spec.Schema as Schema
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
@@ -79,6 +79,7 @@ data CompiledSchema
         arrayTypes :: Maybe ArrayType,
         props :: HM.HashMap Text (TypeNode, Bool),
         additionalProps :: Bool,
+        additionalPropSchema :: TypeNode,
         stringVals :: V.Vector Text
       }
   deriving (Show)
@@ -142,6 +143,7 @@ compileSchema scm = do
             arrayTypes = arrType,
             props = propMap,
             additionalProps = maybe True additionalAllowed objSpec,
+            additionalPropSchema = identToNode $ objSpec >>= additionalSchema,
             stringVals = String.toReducedSpec stringValsSpec
           }
   when (shouldNotHavePropertySpec compiledScm hasPropSpec)
@@ -220,7 +222,7 @@ getTypeRefs :: CompiledSchema -> [TypeNode]
 getTypeRefs = NEList.toList . NESet.toList . typesAs
 
 getPropertyTypeRefs :: CompiledSchema -> [TypeNode]
-getPropertyTypeRefs = fmap fst . HM.elems . props
+getPropertyTypeRefs scm = (fmap fst . HM.elems . props $ scm) ++ [additionalPropSchema scm]
 
 getListTypeRefs :: CompiledSchema -> [TypeNode]
 getListTypeRefs scm = case arrayTypes scm of

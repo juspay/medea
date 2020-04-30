@@ -259,30 +259,28 @@ checkObject ::
   Identifier ->
   m (Cofree ValidJSONF SchemaInformation)
 checkObject obj parIdent = do
-  scm <- lookupSchema parIdent
-  valsAndTypes <- pairPropertySchemaAndVal obj (props scm) (additionalProps scm) parIdent
+  valsAndTypes <- pairPropertySchemaAndVal obj parIdent
   checkedObj <- mapM (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
   pure $ ObjectSchema :< ObjectF checkedObj
 
 pairPropertySchemaAndVal ::
   (Alternative m, MonadReader Schema m, MonadError ValidationError m) =>
   HM.HashMap Text Value ->
-  HM.HashMap Text (TypeNode, Bool) ->
-  Bool ->
   Identifier ->
   m (HM.HashMap Text (Value, TypeNode))
-pairPropertySchemaAndVal obj properties extraAllowed parIdent = do
-  mappedObj <- mapM pairProperty $ HM.mapWithKey (,) obj
-  mapM_ isMatched $ HM.mapWithKey (,) properties
+pairPropertySchemaAndVal obj parIdent = do
+  scm <- lookupSchema parIdent
+  mappedObj <- mapM (pairProperty scm) $ HM.mapWithKey (,) obj
+  mapM_ isMatched . HM.mapWithKey (,) $ props scm
   pure mappedObj
   where
     -- maps each property-value with the schema(typeNode) it should validate against
-    pairProperty (propName, v) = case HM.lookup propName properties of
+    pairProperty scm (propName, v) = case HM.lookup propName $ props scm of
       Just (typeNode, _) -> pure (v, typeNode)
       Nothing
-        | extraAllowed -> pure (v, AnyNode)
+        | additionalProps scm -> pure (v, additionalPropSchema scm)
         | otherwise -> throwError . AdditionalPropFoundButBanned (textify parIdent) $ propName
-    -- throwsAn error if a non-optional property was not found in the object
+    -- throws ann error if a non-optional property was not found in the object
     isMatched (propName, (_, optional)) =
       when (isNothing (HM.lookup propName obj) && not optional)
         $ throwError . RequiredPropertyIsMissing (textify parIdent)

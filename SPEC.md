@@ -197,7 +197,7 @@ A length specification MUST consist of one, or both, of the following, in any or
 An element schema specification MUST consist of the following, in this order:
 
 1) Four space symbols;
-2) The reserved identifier ``$element_type``;
+2) The reserved identifier ``$element-type``;
 3) A space symbol;
 4) _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
    ``$array``, ``$number``, ``$string``; and
@@ -206,7 +206,7 @@ An element schema specification MUST consist of the following, in this order:
 A minimum length specification MUST consist of the following, in this order:
 
 1) Four space symbols;
-2) The reserved identifier ``$min_length``;
+2) The reserved identifier ``$min-length``;
 3) A single space symbol;
 4) A Medea natural number; and
 5) A newline.
@@ -214,7 +214,7 @@ A minimum length specification MUST consist of the following, in this order:
 A maximum length specification MUST consist of the following, in this order:
 
 1) Four space symbols;
-2) The reserved identifier ``$max_length``;
+2) The reserved identifier ``$max-length``;
 3) A single space symbol;
 4) A Medea natural number; and
 5) A newline.
@@ -303,11 +303,16 @@ An additional property declaration MUST consist of the following, in this order:
 1) Eight space symbols;
 2) The reserved identifier ``$additional-properties-allowed``;
 3) A newline;
-4) The reserved identifier ``$additional-property-schema``;
-5) A single space symbol;
-6) _Either_ a Medea identifer, or one of ``$null``, ``$boolean``, ``$object``,
+4) An optional _additional property schema line_.
+
+An additional property schema line MUST consist of the following, in this order:
+
+1) Eight space symbols;
+1) The reserved identifier ``$additional-property-schema``;
+2) A single space symbol;
+3) _Either_ a Medea identifer, or one of ``$null``, ``$boolean``, ``$object``,
   ``$array``, ``$number``, ``$string``; and
-3) A newline.
+4) A newline.
 
 **Semantics:** A JSON value is considered valid by this specifier if it a JSON
 object, and for each of its object property specifier sections, the following
@@ -325,11 +330,12 @@ Furthermore, if the additional property declaration is _absent_, no property is 
 for the object _other_ than those given by some object property specifier
 section. If the additional property declaration is present, any value of any
 property _other_ than those given by some object property specifier section must
-be valid by the schema named in the identifier given in the additional property
-declaration.
+be valid by the schema named in the identifier given in its additional property
+schema line (if present).
 
-A property value is always valid by no property schema line. Otherwise, these 
-validation rules apply, based on the naming identifier:
+A property value is always valid by no property schema line or no additional
+property schema line. Otherwise, these validation rules apply, based on the 
+naming identifier:
  
 * ``$null``: The property value is `null`.
 * ``$boolean``: The property value is a JSON boolean.
@@ -341,8 +347,8 @@ validation rules apply, based on the naming identifier:
   named by this identifier. 
 
 **Postconditions:** A Medea validator MUST indicate a unique error condition if
-an identifier in a property schema line does not correspond to any schema 
-defined in the current schema file.
+an identifier in a property schema line or an additional property schema line 
+does not correspond to any schema defined in the current schema file.
 
 If multiple object property specifier sections have a property name line naming
 the same schema, a Medea validator MUST indicate a unique error condition.
@@ -357,7 +363,7 @@ property permission), a JSON object is only considered valid if it is empty
 
 If an object property specifier contains a property name line, but no property
 schema line, then, provided that the named property is defined, any value for
-said property is considered valid.  
+said property is considered valid. 
 
 #### String value specification
 
@@ -371,7 +377,7 @@ specification must contain the type specifier line ``$string``.
 order:
 
 1) Four space symbols;
-2) The reserved identifier ``$string_values``;
+2) The reserved identifier ``$string-values``;
 3) A newline;
 4) One or more _string value lines_; and
 

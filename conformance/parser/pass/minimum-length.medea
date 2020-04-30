@@ -1,2 +1,2 @@
 $schema foo
-    $min_length 2
+    $min-length 2

@@ -3,7 +3,7 @@ $schema $start
         $object
         $string
         foo
-    $element_type
+    $element-type
         $array
 
 $schema foo

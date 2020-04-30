@@ -1,9 +1,9 @@
 $schema $start
     $type
         $array
-    $max_length 3
-    $min_length 2
-    $element_type
+    $max-length 3
+    $min-length 2
+    $element-type
         foo
 
 $schema foo

@@ -3,8 +3,8 @@ $schema $start
         $object
         $string
         foo
-    $element_type
+    $element-type
         $array
-    $max_length 3
+    $max-length 3
 
 $schema foo

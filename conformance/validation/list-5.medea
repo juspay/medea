@@ -1,5 +1,5 @@
 $schema $start
     $type
         $array
-    $max_length 5
-    $min_length 3
+    $max-length 5
+    $min-length 3

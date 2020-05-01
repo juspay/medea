@@ -1,0 +1,3 @@
+$schema foo
+    $properties
+        $additional-property-schema foo

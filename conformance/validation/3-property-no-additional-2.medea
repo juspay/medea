@@ -1,14 +1,24 @@
 $schema $start
     $type
-        foo
+        bar
 
-$schema foo
+$schema bar
     $type
         $object
     $properties
         $property-name "foo"
-        $property-schema $number
+        $property-schema foo
         $optional-property
         $property-name "bar"
         $property-name "bazz"
-        $property-schema $null
+        $property-schema bazz
+
+$schema foo
+    $type
+        $number
+        $array
+
+$schema bazz
+    $type
+        $null
+        $boolean

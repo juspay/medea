@@ -1,0 +1,6 @@
+$schema $start
+    $properties
+        $property-name "foo"
+        $optional-property
+        $additional-properties-allowed
+        $additional-property-schema $null

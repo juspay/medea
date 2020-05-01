@@ -17,7 +17,7 @@ import Data.Aeson.Arbitrary
     isString,
   )
 import Data.Either (isLeft, isRight)
-import Data.HashMap.Strict (lookup)
+import Data.HashMap.Strict (filterWithKey, lookup)
 import Data.Medea (Schema, loadSchemaFromFile, validate)
 import Data.Text (Text)
 import qualified Data.Vector as V
@@ -48,96 +48,102 @@ main = hspec . parallel $ do
   describe "Object schema with 1 property and no additional allowed" $ do
     testObject
       ObjTestParams
-        { objTestOpts = ObjGenOpts ["foo"] [] 0 0,
+        { objTestOpts = ObjGenOpts ["foo"] [] 0 2,
           objTestPath = "1-property-no-additional-1.medea",
-          objTestPred = hasProperty "foo" isBool
+          objTestPred = hasProperty "foo" isBool,
+          objAdditionalPred = const False
         }
     testObject
       ObjTestParams
-        { objTestOpts = ObjGenOpts ["foo"] [] 0 0,
+        { objTestOpts = ObjGenOpts ["foo"] [] 0 2,
           objTestPath = "1-property-no-additional-2.medea",
-          objTestPred = hasProperty "foo" isNull
+          objTestPred = hasProperty "foo" isNull,
+          objAdditionalPred = const False
         }
     testObject
       ObjTestParams
-        { objTestOpts = ObjGenOpts ["foo"] [] 0 0,
+        { objTestOpts = ObjGenOpts ["foo"] [] 0 2,
           objTestPath = "1-property-no-additional-3.medea",
-          objTestPred = hasProperty "foo" isArray
-        }
-    testInvalidObject
-      ObjTestParams
-        { objTestOpts = ObjGenOpts ["foo"] [] 1 3,
-          objTestPath = "1-property-no-additional-1.medea",
-          objTestPred = const True
-        }
-    testInvalidObject
-      ObjTestParams
-        { objTestOpts = ObjGenOpts ["foo"] [] 1 3,
-          objTestPath = "1-property-no-additional-2.medea",
-          objTestPred = const True
-        }
-    testInvalidObject
-      ObjTestParams
-        { objTestOpts = ObjGenOpts [] ["foo"] 1 3,
-          objTestPath = "1-property-no-additional-3.medea",
-          objTestPred = const True
+          objTestPred = hasProperty "foo" isArray,
+          objAdditionalPred = const False
         }
   describe "Object schema with 1 property and additional allowed" $ do
     testObject
       ObjTestParams
         { objTestOpts = ObjGenOpts ["foo"] [] 0 3,
           objTestPath = "1-property-additional-1.medea",
-          objTestPred = hasProperty "foo" isString
+          objTestPred = hasProperty "foo" isString,
+          objAdditionalPred = const True
         }
     testObject
       ObjTestParams
         { objTestOpts = ObjGenOpts ["foo"] [] 0 3,
           objTestPath = "1-property-additional-2.medea",
-          objTestPred = hasProperty "foo" isNumber
+          objTestPred = hasProperty "foo" isNumber,
+          objAdditionalPred = const True
         }
     testObject
       ObjTestParams
         { objTestOpts = ObjGenOpts ["foo"] [] 0 3,
           objTestPath = "1-property-additional-3.medea",
-          objTestPred = hasProperty "foo" isObject
+          objTestPred = hasProperty "foo" isObject,
+          objAdditionalPred = const True
         }
   describe "Object schema with 3 properties and no additional allowed" $ do
     testObject
       ObjTestParams
-        { objTestOpts = ObjGenOpts ["foo", "bar", "bazz"] [] 0 0,
+        { objTestOpts = ObjGenOpts ["foo", "bar", "bazz"] [] 0 1,
           objTestPath = "3-property-no-additional-1.medea",
-          objTestPred = hasProperty "foo" isBool .&& hasProperty "bazz" isString
+          objTestPred =
+            hasProperty "foo" (isNumber .|| isArray)
+              .&& hasProperty "bazz" (isNull .|| isBool),
+          objAdditionalPred = const False
         }
     testObject
       ObjTestParams
-        { objTestOpts = ObjGenOpts ["bar", "bazz"] ["foo"] 0 0,
+        { objTestOpts = ObjGenOpts ["bar", "bazz"] ["foo"] 0 1,
           objTestPath = "3-property-no-additional-2.medea",
-          objTestPred = hasOptionalProperty "foo" isNumber .&& hasProperty "bazz" isNull
-        }
-    testInvalidObject
-      ObjTestParams
-        { objTestOpts = ObjGenOpts ["foo", "bar", "bazz"] [] 1 3,
-          objTestPath = "3-property-no-additional-1.medea",
-          objTestPred = const True
-        }
-    testInvalidObject
-      ObjTestParams
-        { objTestOpts = ObjGenOpts ["bar", "bazz"] ["foo"] 1 3,
-          objTestPath = "3-property-no-additional-2.medea",
-          objTestPred = const True
+          objTestPred =
+            hasOptionalProperty "foo" (isNumber .|| isArray)
+              .&& hasProperty "bazz" (isNull .|| isBool),
+          objAdditionalPred = const False
         }
   describe "Object schema with 3 properties and additional allowed" $ do
     testObject
       ObjTestParams
         { objTestOpts = ObjGenOpts ["foo", "bar", "bazz"] [] 0 3,
           objTestPath = "3-property-additional-allowed-1.medea",
-          objTestPred = hasProperty "foo" isBool .&& hasProperty "bazz" isString
+          objTestPred = hasProperty "foo" isBool .&& hasProperty "bazz" isString,
+          objAdditionalPred = const True
         }
     testObject
       ObjTestParams
         { objTestOpts = ObjGenOpts ["bar", "bazz"] ["foo"] 0 3,
           objTestPath = "3-property-additional-allowed-2.medea",
-          objTestPred = hasOptionalProperty "foo" isNumber .&& hasProperty "bazz" isNull
+          objTestPred = hasOptionalProperty "foo" isNumber .&& hasProperty "bazz" isNull,
+          objAdditionalPred = const True
+        }
+  describe "Object schema with additional property schema" $ do
+    testObject
+      ObjTestParams
+        { objTestOpts = ObjGenOpts [] [] 0 3,
+          objTestPath = "map-number-bool.medea",
+          objTestPred = const True,
+          objAdditionalPred = isNumber .|| isBool
+        }
+    testObject
+      ObjTestParams
+        { objTestOpts = ObjGenOpts ["foo"] [] 0 3,
+          objTestPath = "map-with-1-specified.medea",
+          objTestPred = hasProperty "foo" (isArray .|| isObject),
+          objAdditionalPred = isNumber .|| isBool
+        }
+    testObject
+      ObjTestParams
+        { objTestOpts = ObjGenOpts ["foo"] ["bazz"] 0 3,
+          objTestPath = "map-with-2-specified.medea",
+          objTestPred = hasProperty "foo" (isArray .|| isObject),
+          objAdditionalPred = isNumber .|| isBool
         }
   describe "Array schema with element_type only" $ do
     testList
@@ -209,7 +215,9 @@ data ObjTestParams
   = ObjTestParams
       { objTestOpts :: ObjGenOpts,
         objTestPath :: FilePath,
-        objTestPred :: Object -> Bool
+        objTestPred :: Object -> Bool,
+        -- | The predice to be used on additional properties
+        objAdditionalPred :: Value -> Bool
       }
 
 data ListTestParams
@@ -247,17 +255,13 @@ testSingular fp name p = do
   it ("Should not validate non-" ++ name ++ "s: " ++ fp) (validationFail arbitraryValue (not . p) scm)
 
 testObject :: ObjTestParams -> Spec
-testObject (ObjTestParams opts fp p) = do
+testObject (ObjTestParams opts fp p extraPred) = do
   scm <- loadAndParse $ prependTestDir fp
-  it ("Should validate valid objects" ++ ": " ++ fp) (validationSuccess gen p scm)
-  it ("Should not validate invalid objects" ++ ": " ++ fp) (validationFail gen (not . p) scm)
+  it ("Should validate valid objects" ++ ": " ++ fp) (validationSuccess gen p' scm)
+  it ("Should not validate invalid objects" ++ ": " ++ fp) (validationFail gen (not . p') scm)
   where
     gen = arbitraryObj opts
-
-testInvalidObject :: ObjTestParams -> Spec
-testInvalidObject (ObjTestParams opts fp p) = do
-  scm <- loadAndParse $ prependTestDir fp
-  it ("Should not validate" ++ ": " ++ fp) (validationFail (arbitraryObj opts) p scm)
+    p' = p .&& makeMapPred opts extraPred
 
 testList :: ListTestParams -> Spec
 testList (ListTestParams opts fp pTypes pLen) = do
@@ -297,6 +301,11 @@ hasProperty propName p obj = maybe False p $ lookup propName obj
 -- Like hasProperty but is also true when the given property is absent.
 hasOptionalProperty :: Text -> (Value -> Bool) -> Object -> Bool
 hasOptionalProperty propName p obj = maybe True p $ lookup propName obj
+
+makeMapPred :: ObjGenOpts -> (Value -> Bool) -> Object -> Bool
+makeMapPred (ObjGenOpts props optProps _ _) p = all p . filterWithKey (\k _ -> k `notElem` specifiedProps)
+  where
+    specifiedProps = props ++ optProps
 
 testStringVals :: FilePath -> [String] -> Spec
 testStringVals fp validStrings = do

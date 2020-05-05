@@ -4,16 +4,17 @@ $schema $start
     $properties
         $property-name "foo"
         $property-schema foo
-        $property-name "bar"
         $property-name "bazz"
-        $property-schema bazz
+        $optional-property
+        $additional-properties-allowed
+        $additional-property-schema bar
 
 $schema foo
     $type
-        $number
         $array
+        $object
 
-$schema bazz
+$schema bar
     $type
-        $null
         $boolean
+        $number

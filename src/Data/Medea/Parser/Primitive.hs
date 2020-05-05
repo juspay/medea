@@ -57,6 +57,7 @@ data ReservedIdentifier
   | RPropertyName
   | RPropertySchema
   | RAdditionalPropertiesAllowed
+  | RAdditionalPropertySchema
   | ROptionalProperty
   | RMinLength
   | RMaxLength
@@ -79,6 +80,7 @@ fromReserved RProperties = "$properties"
 fromReserved RPropertyName = "$property-name"
 fromReserved RPropertySchema = "$property-schema"
 fromReserved RAdditionalPropertiesAllowed = "$additional-properties-allowed"
+fromReserved RAdditionalPropertySchema = "$additional-property-schema"
 fromReserved ROptionalProperty = "$optional-property"
 fromReserved RMinLength = "$min-length"
 fromReserved RMaxLength = "$max-length"
@@ -103,6 +105,7 @@ tryReserved "$properties" = Just RProperties
 tryReserved "$property-name" = Just RPropertyName
 tryReserved "$property-schema" = Just RPropertySchema
 tryReserved "$additional-properties-allowed" = Just RAdditionalPropertiesAllowed
+tryReserved "$additional-property-schema" = Just RAdditionalPropertySchema
 tryReserved "$optional-property" = Just ROptionalProperty
 tryReserved "$min-length" = Just RMinLength
 tryReserved "$max-length" = Just RMaxLength

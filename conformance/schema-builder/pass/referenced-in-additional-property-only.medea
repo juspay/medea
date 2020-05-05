@@ -1,0 +1,8 @@
+$schema $start
+    $type
+        $object
+    $properties
+        $additional-properties-allowed
+        $additional-property-schema foo
+
+$schema foo

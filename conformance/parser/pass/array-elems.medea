@@ -1,5 +1,5 @@
 $schema $start
     $type
         $array
-    $element_type
+    $element-type
         $string

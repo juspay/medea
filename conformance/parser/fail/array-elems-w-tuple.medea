@@ -1,7 +1,7 @@
 $schema foo
     $type
         $array
-    $element_type
+    $element-type
         $string
     $tuple
         $string

@@ -3,6 +3,6 @@ $schema $start
         $object
         $string
         foo
-    $max_length 3
+    $max-length 3
 
 $schema foo

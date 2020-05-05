@@ -1,4 +1,4 @@
 $schema $start
     $type
         $string
-    $string_values
+    $string-values

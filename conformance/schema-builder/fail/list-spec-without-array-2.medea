@@ -3,6 +3,6 @@ $schema $start
         $object
         $string
         foo
-    $min_length 3
+    $min-length 3
 
 $schema foo

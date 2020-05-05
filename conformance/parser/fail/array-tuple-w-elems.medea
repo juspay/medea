@@ -2,6 +2,6 @@ $schema foo
     $tuple
         $string
         $number
-    $element_type
+    $element-type
         $string
 

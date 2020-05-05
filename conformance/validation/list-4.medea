@@ -1,4 +1,4 @@
 $schema $start
     $type
         $array
-    $max_length 5
+    $max-length 5

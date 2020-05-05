@@ -32,7 +32,6 @@ $schema $start
     $properties
         $property-name "foo"
         $property-schema $number
-        $optional-property
         $additional-properties-allowed
         $additional-property-schema $null
 ```
@@ -53,30 +52,10 @@ A JSON example that would be valid against the above schema is:
 }
 ```
 
-However, the following would not be valid, as it's missing a property named
-``foo``:
+However, the following would not be valid:
 
 ```JSON
 {
-  "bar": null
-}
-```
-
-Neither would the following, as it has an additional property which is not a
-JSON null:
-
-```JSON
-{
-  "foo": 1,
-  "bar": 2
-}
-```
-
-Nor would the following, as the property named ``foo`` has an array value:
-
-```JSON
-{
-  "foo": [1],
   "bar": null
 }
 ```
@@ -95,7 +74,7 @@ The key concepts of Medea's syntax are:
 The ``$schema`` keyword begins the definition of a single schema. There must be
 a schema named ``$start``, which describes the validity conditions for the first
 value in the JSON to be validated. A Medea schema graph file can contain
-multiple schemata, separated by newlines:
+multiple schemata, separated by a single empty line:
 
 ```
 $schema $start
@@ -233,7 +212,7 @@ $schema $start
         $null
 ```
 
-The following JSON array would be valid against the above value:
+The following JSON array would be valid against the above schema:
 
 ```JSON
 [ "hello", false, null ]

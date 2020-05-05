@@ -6,11 +6,11 @@ This specification describes Medea, which is intended as a schema language for
 describing and validating the structure of JSON documents. In particular, this
 specification describes the following:
 
-- The human-readable representation of a Medea description of a JSON document
+* The human-readable representation of a Medea description of a JSON document
   (that is, the _syntax_);
-- The validation behaviour that is required from any given Medea construct (that
+* The validation behaviour that is required from any given Medea construct (that
   is, the _semantics_); and
-- Any requirements or limitations, as precisely as possible.
+* Any requirements or limitations, as precisely as possible.
 
 ## Conventions
 
@@ -54,10 +54,10 @@ identifier that contains more than this number of symbols.
 
 ### Reserved identifiers
 
-Any identifier starting with the "$" symbol is _reserved_. Users MUST NOT 
-define identifiers starting with the "$" symbol, as they are used by Medea
-validators internally. A Medea validator MAY fail if given a user-defined
-identifier starting with the "$" symbol; if it does so, it MUST indicate a
+Any identifier starting with the symbol DOLLAR SIGN (hex code 0x24) is _reserved_. 
+Users MUST NOT define identifiers starting with DOLLAR SIGN, as they are used by 
+Medea validators internally. A Medea validator MAY fail if given a user-defined
+identifier starting with DOLLAR SIGN; if it does so, it MUST indicate a
 unique error condition.
 
 Unless stated otherwise, a Medea identifier is _non-reserved_.
@@ -100,7 +100,7 @@ A Medea validator MUST provide validation of JSON values of these types, and
 MUST provide the following _primitive type identifiers_:
 
 * ``$null``
-* ``$boolean
+* ``$boolean``
 * ``$object``
 * ``$array``
 * ``$number``
@@ -118,11 +118,11 @@ A Medea schema graph file SHOULD have the extension ``.medea``.
 A Medea file is made up of one or more _schemata_. A _schema_ (singular of 
 'schemata') MUST consist of the following, in this order:
 
-1) The reserved identifier "$schema";
-2) A single space symbol;
-3) A Medea identifier (called the _name_ or _naming identifier_);
-4) A newline; and
-5) Zero or more _specifications_ (defined fully in the subsequent section).
+1. The reserved identifier ``$schema``;
+2. A single space symbol;
+3. A Medea identifier (called the _name_ or _naming identifier_);
+4. A newline; and
+5. Zero or more _specifications_ (defined fully in the subsequent section).
 
 A Medea validator MUST indicate a unique error condition if a schema is defined
 with a name that has already been used as the naming identifier of an existing
@@ -186,38 +186,38 @@ schema must not contain a tuple specification.
 
 **Syntax:** A list specification MUST consist of one, or both, of the following, in any order: 
 
-1) A _length specification_; and
-2) An _element schema specification_.
+1. A _length specification_; and
+2. An _element schema specification_.
 
 A length specification MUST consist of one, or both, of the following, in any order:
 
-1) A _minimum length specification_; and
-2) A _maximum length specification_.
+1. A _minimum length specification_; and
+2. A _maximum length specification_.
 
 An element schema specification MUST consist of the following, in this order:
 
-1) Four space symbols;
-2) The reserved identifier ``$element-type``;
-3) A space symbol;
-4) _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
+1. Four space symbols;
+2. The reserved identifier ``$element-type``;
+3. A space symbol;
+4. _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
    ``$array``, ``$number``, ``$string``; and
-5) A newline.
+5. A newline.
 
 A minimum length specification MUST consist of the following, in this order:
 
-1) Four space symbols;
-2) The reserved identifier ``$min-length``;
-3) A single space symbol;
-4) A Medea natural number; and
-5) A newline.
+1. Four space symbols;
+2. The reserved identifier ``$min-length``;
+3. A single space symbol;
+4. A Medea natural number; and
+5. A newline.
 
 A maximum length specification MUST consist of the following, in this order:
 
-1) Four space symbols;
-2) The reserved identifier ``$max-length``;
-3) A single space symbol;
-4) A Medea natural number; and
-5) A newline.
+1. Four space symbols;
+2. The reserved identifier ``$max-length``;
+3. A single space symbol;
+4. A Medea natural number; and
+5. A newline.
 
 **Semantics:** A JSON value is considered valid by this specifier if it is a
 JSON array. Additionally: 
@@ -262,57 +262,57 @@ specification must contain the type specifier line ``$object``.
 **Syntax:** An object property specification MUST consist of the following, in
 this order:
 
-1) Four space symbols;
-2) The reserved identifier ``$properties``;
-3) A newline;
-4) Zero or more _object property specifier sections_; and
-5) An optional _additional property declaration_.
+1. Four space symbols;
+2. The reserved identifier ``$properties``;
+3. A newline;
+4. Zero or more _object property specifier sections_; and
+5. An optional _additional property declaration_.
 
 Each object property specifier section MUST consist of the following, in this
 order:
 
-1) A _property name line_; and
-2) An optional _property schema line_.
-3) An optional _optional property declaration_.
+1. A _property name line_; and
+2. An optional _property schema line_.
+3. An optional _optional property declaration_.
 
 A property name line MUST consist of the following, in this order:
 
-1) Eight space symbols;
-2) The reserved identifier ``$property-name``;
-3) A single space symbol;
-4) A Medea string; and
-5) A newline.
+1. Eight space symbols;
+2. The reserved identifier ``$property-name``;
+3. A single space symbol;
+4. A Medea string; and
+5. A newline.
 
 A property schema line MUST consist of the following, in this order:
 
-1) Eight space symbols;
-2) The reserved identifier ``$property-schema``;
-3) A single space symbol;
-4) _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
+1. Eight space symbols;
+2. The reserved identifier ``$property-schema``;
+3. A single space symbol;
+4. _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
   ``$array``, ``$number``, ``$string``; and
-5) A newline.
+5. A newline.
 
 An optional property declaration MUST consist of the following, in this order:
 
-1) Eight space symbols;
-2) The reserved identifier ``$optional-property``; and
-3) A newline.
+1. Eight space symbols;
+2. The reserved identifier ``$optional-property``; and
+3. A newline.
 
 An additional property declaration MUST consist of the following, in this order:
 
-1) Eight space symbols;
-2) The reserved identifier ``$additional-properties-allowed``;
-3) A newline;
-4) An optional _additional property schema line_.
+1. Eight space symbols;
+2. The reserved identifier ``$additional-properties-allowed``;
+3. A newline;
+4. An optional _additional property schema line_.
 
 An additional property schema line MUST consist of the following, in this order:
 
-1) Eight space symbols;
-1) The reserved identifier ``$additional-property-schema``;
-2) A single space symbol;
-3) _Either_ a Medea identifer, or one of ``$null``, ``$boolean``, ``$object``,
+1. Eight space symbols;
+2. The reserved identifier ``$additional-property-schema``;
+3. A single space symbol;
+4. _Either_ a Medea identifer, or one of ``$null``, ``$boolean``, ``$object``,
   ``$array``, ``$number``, ``$string``; and
-4) A newline.
+5. A newline.
 
 **Semantics:** A JSON value is considered valid by this specifier if it a JSON
 object, and for each of its object property specifier sections, the following
@@ -376,16 +376,16 @@ specification must contain the type specifier line ``$string``.
 **Syntax:** A string value specification MUST consist of the following, in this
 order:
 
-1) Four space symbols;
-2) The reserved identifier ``$string-values``;
-3) A newline;
-4) One or more _string value lines_; and
+1. Four space symbols;
+2. The reserved identifier ``$string-values``;
+3. A newline;
+4. One or more _string value lines_; and
 
 Each string value line MUST consist of the following, in this order:
 
-1) Eight space symbols;
-2) A Medea string; and
-3) A newline.
+1. Eight space symbols;
+2. A Medea string; and
+3. A newline.
 
 **Semantics:** A JSON value is considered valid by this specifier if it is a
 JSON string. Additionally, the value must be equal to _any_ of the Medea strings
@@ -409,24 +409,24 @@ schema must not contain a list specification.
 
 **Syntax:** A tuple specification MUST consist of the following, in this order:
 
-1) Four space symbols;
-2) The reserved identifier ``$tuple``;
-3) A newline; and
-3) Zero or more _positional schema specifications_.
+1. Four space symbols;
+2. The reserved identifier ``$tuple``;
+3. A newline; and
+4. Zero or more _positional schema specifications_.
 
 A positional schema specification MUST consist of the following, in this order:
 
-1) Eight space symbols;
-2) _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
+1. Eight space symbols;
+2. _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
    ``$array``, ``$number``, ``$string``; and
-3) A newline.
+3. A newline.
 
 **Semantics:** A JSON value is considered valid by this specifier if it is a
 JSON array. Additionally, let _p(1)_, _p(2)_, ..., _p(N)_ be each of the
 positional specifications, in the order declared, where _N_ is the total number
-of positional schema specifications. For each _i_ in 1, 2, ... _N_, the _i -
-1_th element of the array must be valid according to the following rules, based
-on the Medea identifier used in _p(i)_:
+of positional schema specifications. For each _i_ in 1, 2, ... _N_, element _i -
+1_ of the array must be valid according to the following rules, based on the
+Medea identifier used in _p(i)_:
 
 * ``$null``: The value is ``null``.
 * ``$boolean``: The value is a JSON boolean.
@@ -455,17 +455,17 @@ values.
 
 **Syntax:** A type specification MUST consist of the following, in this order:
 
-1) Four space symbols;
-2) The reserved identifier ``$type``;
-3) A newline; and
-4) One or more _type specifier lines_.
+1. Four space symbols;
+2. The reserved identifier ``$type``;
+3. A newline; and
+4. One or more _type specifier lines_.
 
 Each type specifier line MUST consist of the following, in this order: 
 
-1) Eight space symbols;
-2) _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
+1. Eight space symbols;
+2. _Either_ a Medea identifier, or one of ``$null``, ``$boolean``, ``$object``,
   ``$array``, ``$number``, ``$string``; and
-3) A newline.
+3. A newline.
 
 **Semantics:** A JSON value is considered valid by this specifier if it is valid
 by _any_ of the identifiers provided for all of its type specifiers. For each

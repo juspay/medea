@@ -7,6 +7,7 @@ The system is ideal for describing:
 - Javascript primitives (null, boolean, string, number, object, array)
 - Sum types (multiple types permitted for the same property)
 - Enums (one of a list of valid values for strings)
+- Homogenously-typed arrays of variable length (with optional bounds)
 - Tuples (heterogenously typed, fixed size collections) 
 - Maps (objects with 0 or more defined properties, and fixed types for 
   additional properties)

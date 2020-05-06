@@ -167,7 +167,7 @@ which has fixed length, but whose elements are structurally different (perhaps
 dramatically).
 
 For an example of list specifications, the following schema validates only JSON
-arrays which contain at least 3 strings:
+arrays with at least 3 elements, all of which must be strings:
 
 ```
 $schema $start

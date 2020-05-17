@@ -1,3 +1,6 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE LambdaCase #-}
 
 module Data.Medea.JSONType
@@ -7,7 +10,11 @@ module Data.Medea.JSONType
 where
 
 import Data.Aeson (Value (..))
+import Data.Hashable (Hashable)
+import GHC.Generics (Generic)
 
+-- | The basic types of JSON value (as per
+-- [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf)).
 data JSONType
   = JSONNull
   | JSONBoolean
@@ -15,8 +22,10 @@ data JSONType
   | JSONString
   | JSONArray
   | JSONObject
-  deriving (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show, Generic)
+  deriving anyclass (Hashable)
 
+-- | Helper for determining the type of an Aeson 'Value'.
 typeOf :: Value -> JSONType
 typeOf = \case
   Object _ -> JSONObject

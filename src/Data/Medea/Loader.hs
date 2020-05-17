@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Data.Medea.Loader
@@ -26,7 +27,7 @@ import System.IO (Handle)
 import Text.Megaparsec (ParseError (..), bundleErrors, parse)
 import Prelude hiding (readFile)
 
--- | Possible errors that can be produced by the loader
+-- | Possible errors from loading Medea schemata.
 data LoaderError
   = -- | The data provided wasn't UTF-8.
     NotUtf8
@@ -35,41 +36,60 @@ data LoaderError
   | -- | A length specification had no minimum/maximum specification.
     EmptyLengthSpec
   | -- | Parsing failed.
-    ParserError (ParseError Text Void)
-  | -- | No schema labelled $start was provided.
+    ParserError 
+      !(ParseError Text Void) -- ^ The error we got. 
+  | -- | No schema labelled @$start@ was provided.
     StartSchemaMissing
   | -- | A schema was typed in terms of itself.
     SelfTypingSchema
   | -- | A schema was defined more than once.
-    MultipleSchemaDefinition Text
-  | -- | name of the undefined schema and the schema that references it.
-    MissingSchemaDefinition Text Text
-  | -- | A schema with non-start reserved naming identifier.
-    SchemaNameReserved Text -- name of the reserved identifier
+    MultipleSchemaDefinition 
+      {-# UNPACK #-} !Text -- ^ The multiply-defined schema name.
+  | -- | We expected a schema, but couldn't find it. 
+    MissingSchemaDefinition 
+      {-# UNPACK #-} !Text -- ^ Name of the schema we were expecting. 
+      {-# UNPACK #-} !Text -- ^ Name of the schema that referenced it.
+  | -- | A schema was named with a reserved identifier (other than @start@). 
+    SchemaNameReserved 
+      {-# UNPACK #-} !Text -- ^ The schema name.
   | -- | An isolated schema was found.
-    IsolatedSchemata Text
-  | -- | name of the undefined property-schema and the schema that references it.
-    MissingPropSchemaDefinition Text Text
-  | -- | Minimum length specification was more than maximum.
-    MinimumLengthGreaterThanMaximum Text -- name of the schema
-  | -- | A property specifier section has two properties with the same name.
-    -- | Arguments are the parent Schema name and the property name.
-    MultiplePropSchemaDefinition Text Text
-  | -- | name of the undefined list element type and the schema that references it.
-    MissingListSchemaDefinition Text Text
-  | -- | name of the undefined tuple positional schema and the schema that references it.
-    MissingTupleSchemaDefinition Text Text
-  | -- | Schema has a Property specification but no $object type
-    PropertySpecWithoutObjectType Text
-  | -- | Schema has a List specification but no $arry type
-    ListSpecWithoutArrayType Text
-  | -- | Schema has a Tuple specification but no $array type
-    TupleSpecWithoutArrayType Text
-  | -- | Schema has a String specification but no $string type
-    StringSpecWithoutStringType Text
-  deriving (Show)
+    IsolatedSchemata 
+      {-# UNPACK #-} !Text -- ^ The schema name.
+  | -- | A property schema refers to a non-existent schema.
+    MissingPropSchemaDefinition 
+      {-# UNPACK #-} !Text -- ^ Name of the non-existent schema being referenced.
+      {-# UNPACK #-} !Text -- ^ Name of the referencing schema.
+  | -- | A minimum length specification was more than its corresponding 
+    -- maximum length specification.
+    MinimumLengthGreaterThanMaximum 
+      {-# UNPACK #-} !Text -- ^ The name of the schema with the faulty specification.
+  | -- | A property was specified more than once. 
+    MultiplePropSchemaDefinition 
+      {-# UNPACK #-} !Text -- ^ Name of the parent schema.
+      {-# UNPACK #-} !Text -- ^ Name of the property that was defined more than once.
+  | -- | A list specification did not provide an element type. 
+    MissingListSchemaDefinition 
+      {-# UNPACK #-} !Text -- ^ Name of the missing list element type schema. 
+      {-# UNPACK #-} !Text -- ^ Name of the parent schema.
+  | -- | A tuple specification does not provide a positional schema. 
+    MissingTupleSchemaDefinition 
+      {-# UNPACK #-} !Text -- ^ Name of the missing tuple positional schema. 
+      {-# UNPACK #-} !Text -- ^ Name of the parent schema.
+  | -- | Schema had a property specification, but no @$object@ type.
+    PropertySpecWithoutObjectType 
+      {-# UNPACK #-} !Text -- ^ Schema name.
+  | -- | Schema had a list specification, but no @$array@ type.
+    ListSpecWithoutArrayType 
+      {-# UNPACK #-} !Text -- ^ Schema name.
+  | -- | Schema had a tuple specification, but no @$array@ type.
+    TupleSpecWithoutArrayType 
+      {-# UNPACK #-} !Text -- ^ Schema name.
+  | -- | Schema had a string specification, but no @$string@ type.
+    StringSpecWithoutStringType 
+      {-# UNPACK #-} !Text -- ^ Schema name.
+  deriving stock (Eq, Show)
 
--- | Attempt to produce a schema from binary data in memory.
+-- | Attempt to produce a schema from UTF-8 data in memory.
 buildSchema ::
   (MonadError LoaderError m) =>
   ByteString ->

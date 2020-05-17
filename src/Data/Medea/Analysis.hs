@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TupleSections #-}
@@ -34,8 +35,17 @@ import Data.Medea.Parser.Primitive
     tryPrimType,
     typeOf,
   )
-import Data.Medea.Parser.Spec.Array (elementType, maxLength, minLength, tupleSpec)
-import Data.Medea.Parser.Spec.Object (additionalAllowed, additionalSchema, properties)
+import Data.Medea.Parser.Spec.Array
+  ( elementType,
+    maxLength,
+    minLength,
+    tupleSpec,
+  )
+import Data.Medea.Parser.Spec.Object
+  ( additionalAllowed,
+    additionalSchema,
+    properties,
+  )
 import Data.Medea.Parser.Spec.Property (propName, propOptional, propSchema)
 import qualified Data.Medea.Parser.Spec.Schema as Schema
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
@@ -70,22 +80,21 @@ data TypeNode
   | CustomNode Identifier
   deriving (Eq, Ord, Show)
 
-data CompiledSchema
-  = CompiledSchema
-      { schemaNode :: TypeNode,
-        typesAs :: NESet.NESet TypeNode,
-        minArrayLen :: Maybe Natural,
-        maxArrayLen :: Maybe Natural,
-        arrayTypes :: Maybe ArrayType,
-        props :: HM.HashMap Text (TypeNode, Bool),
-        additionalProps :: Bool,
-        additionalPropSchema :: TypeNode,
-        stringVals :: V.Vector Text
-      }
-  deriving (Show)
+data CompiledSchema = CompiledSchema
+  { schemaNode :: TypeNode,
+    typesAs :: NESet.NESet TypeNode,
+    minArrayLen :: Maybe Natural,
+    maxArrayLen :: Maybe Natural,
+    arrayTypes :: Maybe ArrayType,
+    props :: HM.HashMap Text (TypeNode, Bool),
+    additionalProps :: Bool,
+    additionalPropSchema :: TypeNode,
+    stringVals :: V.Vector Text
+  }
+  deriving stock (Eq, Show)
 
 data ArrayType = ListType TypeNode | TupleType (V.Vector TypeNode)
-  deriving (Show)
+  deriving stock (Eq, Show)
 
 checkAcyclic ::
   (MonadError AnalysisError m) =>

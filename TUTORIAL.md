@@ -25,7 +25,6 @@ In this tutorial, we'll explore the following topics:
 
 ## 1. How to specify a schema
 
-example.medea
 ```
 $schema $start
     $type

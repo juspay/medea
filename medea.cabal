@@ -3,13 +3,12 @@ name:               medea
 version:            1.0.0
 synopsis:           A schema language for JSON.
 description:
-  This repo hosts a specification for a schema language, 
-  an extensive conformance suite, and a reference 
-  implementation of both a schema loader and validator.
+  A reference implementation of a schema language, together with a conformance
+  suite and a specification.
 
 homepage:           https://github.com/juspay/medea
 bug-reports:        mailto:koz.ross@retro-freedom.nz
-license:
+license:            MIT
 author:
   Koz Ross,
   Shaurya Gupta
@@ -23,6 +22,7 @@ extra-source-files:
   CHANGELOG.md
   README.md
   SPEC.md
+  TUTORIAL.md
 
 source-repository head
   type:     git

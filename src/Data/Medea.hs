@@ -1,21 +1,64 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TupleSections #-}
 
+-- |
+-- Module: Data.Medea
+-- Description: A JSON schema language validator.
+-- Copyright: (C) Juspay Pvt Ltd, 2020
+-- License: MIT
+-- Maintainer: koz.ross@retro-freedom.nz
+-- Stability: Experimental
+-- Portability: GHC only
+--
+-- This module contains the reference Haskell implementation of a Medea
+-- validator, providing both schema graph file loading and validation, with some
+-- convenience functions.
+--
+-- A minimal example of use follows. This example first attempts to load a Medea
+-- schema graph file from @\/path\/to\/schema.medea@, and, if successful, attempts
+-- to validate the JSON file at @\/path\/to\/my.json@ against the schemata so
+-- loaded.
+--
+-- > import Data.Medea (loadSchemaFromFile, validateFromFile)
+-- > import Control.Monad.Except (runExceptT)
+-- >
+-- > main :: IO ()
+-- > main = do
+-- >   -- try to load the schema graph file
+-- >   loaded <- runExceptT . loadSchemaFromFile $ "/path/to/schema.medea"
+-- >   case loaded of
+-- >      Left err -> print err -- or some other handling
+-- >      Right scm -> do
+-- >        -- try to validate
+-- >        validated <- runExceptT . validateFromFile scm $ "/path/to/my.json"
+-- >        case validated of
+-- >          Left err -> print err -- or some other handling
+-- >          Right validJson -> print validJson -- or some other useful thing
+--
+-- For more details about how to create Medea schema graph files, see
+-- @TUTORIAL.md@ and @SPEC.md@.
 module Data.Medea
-  ( SchemaInformation (..),
-    LoaderError (..),
-    JSONType (..),
-    ValidationError (..),
-    ValidatedJSON,
+  ( -- * Schema loading
     Schema,
-    toValue,
-    validAgainst,
+    LoaderError (..),
     buildSchema,
     loadSchemaFromFile,
     loadSchemaFromHandle,
+
+    -- * Schema validation
+    JSONType (..),
+    SchemaInformation (..),
+    ValidationError (..),
+    ValidatedJSON,
+    toValue,
+    validAgainst,
     validate,
     validateFromFile,
     validateFromHandle,
@@ -65,26 +108,34 @@ import qualified Data.Vector as V
 import GHC.Generics (Generic)
 import System.IO (Handle, hSetBinaryMode)
 
--- | The schema-derived information attached to the current node.
+-- | An annotation, describing which schema a given chunk of JSON was deemed to
+-- be valid against.
 data SchemaInformation
-  = AnySchema
-  | NullSchema
-  | BooleanSchema
-  | NumberSchema
-  | StringSchema
-  | ArraySchema
-  | ObjectSchema
-  | StartSchema
-  | UserDefined Text
-  deriving (Eq, Data, Show, Generic)
+  = -- | No requirements were placed on this chunk.
+    AnySchema
+  | -- | Validated as JSON @null@.
+    NullSchema
+  | -- | Validated as JSON boolean.
+    BooleanSchema
+  | -- | Validated as JSON number.
+    NumberSchema
+  | -- | Validated as JSON string.
+    StringSchema
+  | -- | Validated as JSON array.
+    ArraySchema
+  | -- | Validated as JSON object.
+    ObjectSchema
+  | -- | Validated against the start schema.
+    StartSchema
+  | -- | Validated against the schema with the given name.
+    UserDefined {-# UNPACK #-} !Text
+  deriving stock (Eq, Data, Show, Generic)
+  deriving anyclass (Hashable, NFData)
 
-instance NFData SchemaInformation
-
-instance Hashable SchemaInformation
-
--- | JSON, with additional schema-derived information as an annotation.
+-- | JSON, annotated with what schemata it was deemed valid against.
 newtype ValidatedJSON = ValidatedJSON (Cofree ValidJSONF SchemaInformation)
-  deriving (Eq, Data, Show)
+  deriving stock (Data)
+  deriving newtype (Eq, Show)
 
 -- Can't coerce-erase the constructor fmap, sigh
 instance NFData ValidatedJSON where
@@ -98,7 +149,7 @@ instance Hashable ValidatedJSON where
   hashWithSalt salt (ValidatedJSON (x :< f)) =
     salt `hashWithSalt` x `hashWithSalt` fmap ValidatedJSON f
 
--- | Convert to an Aeson representation (throwing away all schema information).
+-- | Convert to an Aeson 'Value', throwing away all schema information.
 toValue :: ValidatedJSON -> Value
 toValue (ValidatedJSON (_ :< f)) = case f of
   AnythingF v -> v
@@ -109,9 +160,9 @@ toValue (ValidatedJSON (_ :< f)) = case f of
   ArrayF v -> Array . fmap (toValue . coerce) $ v
   ObjectF hm -> Object . fmap (toValue . coerce) $ hm
 
--- | Get the name of the schema that this validated against.
+-- | What schema did this validate against?
 validAgainst :: ValidatedJSON -> SchemaInformation
-validAgainst (ValidatedJSON (label :< _)) = label
+validAgainst (ValidatedJSON (label :< _)) = label -- TODO: This is a bit useless right now.
 
 -- | All possible validation errors.
 data ValidationError
@@ -119,15 +170,31 @@ data ValidationError
   | -- | We could not parse JSON out of what we were provided.
     NotJSON
   | -- | We got a type different to what we expected.
-    WrongType Value JSONType
+    WrongType 
+      !Value -- ^ The chunk of JSON. 
+      !JSONType -- ^ What we expected the type to be.
   | -- | We expected one of several possibilities, but got something that fits
     -- none.
-    NotOneOfOptions Value
-  | AdditionalPropFoundButBanned Text Text
-  | RequiredPropertyIsMissing Text Text
-  | OutOfBoundsArrayLength Text Value
-  | ImplementationError Text
-  deriving (Eq, Show)
+    NotOneOfOptions !Value
+  | -- | We found a JSON object with a property that wasn't specified in its
+    -- schema, and additional properties are forbidden.
+    AdditionalPropFoundButBanned 
+      {-# UNPACK #-} !Text -- ^ The property in question. 
+      {-# UNPACK #-} !Text -- ^ The name of the specifying schema.
+  | -- | We found a JSON object which is missing a property its schema requires.
+    RequiredPropertyIsMissing 
+      {-# UNPACK #-} !Text -- ^ The property in question.
+      {-# UNPACK #-} !Text -- ^ The name of the specifying schema.
+  | -- | We found a JSON array which falls outside of the minimum or maximum 
+    -- length constraints its corresponding schema demands.
+    OutOfBoundsArrayLength 
+      {-# UNPACK #-} !Text -- ^ The name of the specifying schema. 
+      !Value -- ^ The JSON chunk corresponding to the invalid array.
+  | -- | This is a bug - please report it to us!
+    ImplementationError 
+      {-# UNPACK #-} !Text -- some descriptive text
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (Hashable)
 
 instance Semigroup ValidationError where
   EmptyError <> x = x
@@ -137,6 +204,7 @@ instance Monoid ValidationError where
   mempty = EmptyError
 
 -- | Attempt to construct validated JSON from a bytestring.
+-- This will attempt to decode using Aeson before validating.
 validate ::
   (MonadPlus m, MonadError ValidationError m) =>
   Schema ->
@@ -150,6 +218,7 @@ validate scm bs = case decode bs of
     initialSet = singleton . CustomNode . identFromReserved $ RStart
 
 -- | Helper for construction of validated JSON from a JSON file.
+-- This will attempt to decode using Aeson before validating.
 validateFromFile ::
   (MonadPlus m, MonadError ValidationError m, MonadIO m) =>
   Schema ->
@@ -162,6 +231,7 @@ validateFromFile scm fp = do
 -- | Helper for construction of validated JSON from a 'Handle'.
 -- This will set the argument 'Handle' to binary mode, as this function won't
 -- work otherwise. This function will close the 'Handle' once it finds EOF.
+-- This will attempt to decode using Aeson before validating.
 validateFromHandle ::
   (MonadPlus m, MonadError ValidationError m, MonadIO m) =>
   Schema ->

@@ -8,3 +8,5 @@ cabal.sandbox.config
 cabal.project.local
 /dist-newstyle
 stack.yaml.lock
+cabal.project.local
+cabal.project.local~

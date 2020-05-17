@@ -2,7 +2,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE TupleSections #-}
 
 module Data.Medea
@@ -36,7 +35,7 @@ import qualified Data.ByteString.Lazy as BS
 import Data.ByteString.Lazy (ByteString)
 import Data.Coerce (coerce)
 import Data.Data (Data)
-import Data.Foldable (asum)
+import Data.Foldable (asum, traverse_)
 import Data.Functor (($>))
 import qualified Data.HashMap.Strict as HM
 import Data.Hashable (Hashable (..))
@@ -62,7 +61,6 @@ import Data.Set.NonEmpty
     singleton,
   )
 import Data.Text (Text)
-import Data.Traversable (mapM)
 import qualified Data.Vector as V
 import GHC.Generics (Generic)
 import System.IO (Handle, hSetBinaryMode)
@@ -222,11 +220,11 @@ checkPrim v = do
           then pure $ StringSchema :< StringF s
           else throwError $ NotOneOfOptions v
     Array arr -> case par of
-      Nothing -> put (anySet, Nothing) >> (ArraySchema :<) . ArrayF <$> mapM checkTypes arr
+      Nothing -> put (anySet, Nothing) >> (ArraySchema :<) . ArrayF <$> traverse checkTypes arr
       Just parIdent -> checkArray arr parIdent
     Object obj -> case par of
       -- Fast Path (no object spec)
-      Nothing -> put (anySet, Nothing) >> (ObjectSchema :<) . ObjectF <$> mapM checkTypes obj
+      Nothing -> put (anySet, Nothing) >> (ObjectSchema :<) . ObjectF <$> traverse checkTypes obj
       Just parIdent -> checkObject obj parIdent
 
 -- check if the array length is within the specification range.
@@ -245,7 +243,7 @@ checkArray arr parIdent = do
     $ throwError . OutOfBoundsArrayLength (textify parIdent) . Array
     $ arr
   let valsAndTypes = pairValsWithTypes $ arrayTypes scm
-  checkedArray <- mapM (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
+  checkedArray <- traverse (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
   pure $ ArraySchema :< ArrayF checkedArray
   where
     pairValsWithTypes Nothing = fmap (,AnyNode) arr
@@ -260,7 +258,7 @@ checkObject ::
   m (Cofree ValidJSONF SchemaInformation)
 checkObject obj parIdent = do
   valsAndTypes <- pairPropertySchemaAndVal obj parIdent
-  checkedObj <- mapM (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
+  checkedObj <- traverse (\(val, typeNode) -> put (singleton typeNode, Nothing) >> checkTypes val) valsAndTypes
   pure $ ObjectSchema :< ObjectF checkedObj
 
 pairPropertySchemaAndVal ::
@@ -270,8 +268,8 @@ pairPropertySchemaAndVal ::
   m (HM.HashMap Text (Value, TypeNode))
 pairPropertySchemaAndVal obj parIdent = do
   scm <- lookupSchema parIdent
-  mappedObj <- mapM (pairProperty scm) $ HM.mapWithKey (,) obj
-  mapM_ isMatched . HM.mapWithKey (,) $ props scm
+  mappedObj <- traverse (pairProperty scm) $ HM.mapWithKey (,) obj
+  traverse_ isMatched . HM.mapWithKey (,) $ props scm
   pure mappedObj
   where
     -- maps each property-value with the schema(typeNode) it should validate against

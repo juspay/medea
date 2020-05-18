@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Data.Medea.Parser.Spec.Object
@@ -9,7 +10,14 @@ where
 import Control.Monad (when)
 import Data.Functor (($>))
 import Data.Maybe (isJust)
-import Data.Medea.Parser.Primitive (Identifier, ReservedIdentifier (..), parseIdentifier, parseKeyVal, parseLine, parseReserved)
+import Data.Medea.Parser.Primitive
+  ( Identifier,
+    ReservedIdentifier (..),
+    parseIdentifier,
+    parseKeyVal,
+    parseLine,
+    parseReserved,
+  )
 import qualified Data.Medea.Parser.Spec.Property as Property
 import Data.Medea.Parser.Types (MedeaParser, ParseError (..))
 import Data.Vector (Vector)
@@ -22,13 +30,12 @@ import Text.Megaparsec
     try,
   )
 
-data Specification
-  = Specification
-      { properties :: Vector Property.Specification,
-        additionalAllowed :: Bool,
-        additionalSchema :: Maybe Identifier
-      }
-  deriving (Eq)
+data Specification = Specification
+  { properties :: {-# UNPACK #-} !(Vector Property.Specification),
+    additionalAllowed :: !Bool,
+    additionalSchema :: !(Maybe Identifier)
+  }
+  deriving stock (Eq)
 
 parseSpecification :: MedeaParser Specification
 parseSpecification = do

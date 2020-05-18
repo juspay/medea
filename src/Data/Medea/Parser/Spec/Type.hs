@@ -1,4 +1,6 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Data.Medea.Parser.Spec.Type
   ( Specification (..),
@@ -9,7 +11,7 @@ where
 
 import Data.Medea.Parser.Primitive
   ( Identifier,
-    ReservedIdentifier(..),
+    ReservedIdentifier (..),
     parseIdentifier,
     parseLine,
     parseReserved,
@@ -20,7 +22,7 @@ import qualified Data.Vector as V
 import Text.Megaparsec (MonadParsec (..), some)
 
 newtype Specification = Specification (Vector Identifier)
-  deriving (Eq)
+  deriving newtype (Eq)
 
 defaultSpec :: Specification
 defaultSpec = Specification V.empty

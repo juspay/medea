@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -41,7 +42,7 @@ import Prelude hiding (head)
 
 -- Identifier
 newtype Identifier = Identifier {toText :: Text}
-  deriving (Eq, Ord, Show)
+  deriving newtype (Eq, Ord, Show)
 
 parseIdentifier :: MedeaParser Identifier
 parseIdentifier = do
@@ -69,7 +70,7 @@ data ReservedIdentifier
   | RNumber
   | RObject
   | RString
-  deriving (Eq, Show)
+  deriving stock (Eq, Show)
 
 fromReserved :: ReservedIdentifier -> Text
 fromReserved RSchema = "$schema"
@@ -127,7 +128,7 @@ parseReserved reserved = do
   checkedConstruct Identifier ident
 
 newtype PrimTypeIdentifier = PrimTypeIdentifier {typeOf :: JSONType}
-  deriving (Eq)
+  deriving newtype (Eq)
 
 tryPrimType :: Identifier -> Maybe PrimTypeIdentifier
 tryPrimType (Identifier ident) = tryReserved ident >>= reservedToPrim
@@ -160,7 +161,7 @@ parseNatural = do
 
 -- String
 newtype MedeaString = MedeaString {unwrap :: Text}
-  deriving (Eq, Ord, Show, Hashable)
+  deriving newtype (Eq, Ord, Show, Hashable)
 
 parseString :: MedeaParser MedeaString
 parseString = do

@@ -1,17 +1,19 @@
+{-# LANGUAGE DerivingStrategies #-}
+
 module Data.Medea.Parser.Types (MedeaParser, ParseError (..)) where
 
 import Data.Text (Text)
 import Text.Megaparsec (Parsec, ShowErrorComponent, showErrorComponent)
 
 data ParseError
-  = IdentifierTooLong Text
-  | ExpectedReservedIdentifier Text
-  | LeadingZero Text
+  = IdentifierTooLong {-# UNPACK #-} !Text
+  | ExpectedReservedIdentifier {-# UNPACK #-} !Text
+  | LeadingZero {-# UNPACK #-} !Text
   | ConflictingSpecRequirements
   | EmptyLengthArraySpec
   | EmptyArrayElements
   | EmptyStringValuesSpec
-  deriving (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show)
 
 instance ShowErrorComponent ParseError where
   showErrorComponent = show

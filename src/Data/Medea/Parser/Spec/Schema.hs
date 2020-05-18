@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Data.Medea.Parser.Spec.Schema
@@ -24,15 +25,14 @@ import qualified Data.Medea.Parser.Spec.Type as Type
 import Data.Medea.Parser.Types (MedeaParser)
 import Text.Megaparsec (MonadParsec (..))
 
-data Specification
-  = Specification
-      { name :: !Identifier,
-        types :: !Type.Specification,
-        stringVals :: !String.Specification,
-        array :: !Array.Specification,
-        object :: !(Maybe Object.Specification)
-      }
-  deriving (Eq)
+data Specification = Specification
+  { name :: !Identifier,
+    types :: !Type.Specification,
+    stringVals :: !String.Specification,
+    array :: !Array.Specification,
+    object :: !(Maybe Object.Specification)
+  }
+  deriving stock (Eq)
 
 parseSpecification :: MedeaParser Specification
 parseSpecification = do

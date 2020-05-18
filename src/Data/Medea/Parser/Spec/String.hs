@@ -1,4 +1,6 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Data.Medea.Parser.Spec.String
   ( Specification (..),
@@ -9,7 +11,14 @@ module Data.Medea.Parser.Spec.String
 where
 
 import Data.Coerce (coerce)
-import Data.Medea.Parser.Primitive (MedeaString, ReservedIdentifier(..), parseLine, parseReserved, parseString, unwrap)
+import Data.Medea.Parser.Primitive
+  ( MedeaString,
+    ReservedIdentifier (..),
+    parseLine,
+    parseReserved,
+    parseString,
+    unwrap,
+  )
 import Data.Medea.Parser.Types (MedeaParser, ParseError (..))
 import Data.Text (Text)
 import Data.Vector (Vector)
@@ -17,7 +26,7 @@ import qualified Data.Vector as Vec
 import Text.Megaparsec (MonadParsec (..), customFailure, many)
 
 newtype Specification = Specification (Vector MedeaString)
-  deriving (Eq, Show)
+  deriving newtype (Eq, Show)
 
 toReducedSpec :: Specification -> Vector Text
 toReducedSpec spec = fmap unwrap (coerce spec :: Vector MedeaString)

@@ -23,14 +23,13 @@ import Data.Medea.Parser.Primitive
 import Data.Medea.Parser.Types (MedeaParser, ParseError (..))
 import Text.Megaparsec (MonadParsec (..), customFailure, many, try)
 
-data Specification
-  = Specification
-      { minLength :: Maybe Natural,
-        maxLength :: Maybe Natural,
-        elementType :: Maybe Identifier,
-        tupleSpec :: Maybe [Identifier]
-      }
-  deriving (Eq, Show)
+data Specification = Specification
+  { minLength :: !(Maybe Natural),
+    maxLength :: !(Maybe Natural),
+    elementType :: !(Maybe Identifier),
+    tupleSpec :: !(Maybe [Identifier])
+  }
+  deriving stock (Eq, Show)
 
 -- tupleSpec with an empty list indicates an empty tuple/encoding of unit
 -- tupleSpec of Nothing indicates that there is no tuple spec at all

@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Data.Medea.Parser.Spec.Property
@@ -20,13 +21,12 @@ import Data.Medea.Parser.Primitive
 import Data.Medea.Parser.Types (MedeaParser)
 import Text.Megaparsec (MonadParsec (..), option, try)
 
-data Specification
-  = Specification
-      { propName :: MedeaString,
-        propSchema :: Maybe Identifier,
-        propOptional :: Bool
-      }
-  deriving (Eq)
+data Specification = Specification
+  { propName :: !MedeaString,
+    propSchema :: !(Maybe Identifier),
+    propOptional :: !Bool
+  }
+  deriving stock (Eq)
 
 parseSpecification :: MedeaParser Specification
 parseSpecification =

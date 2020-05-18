@@ -18,8 +18,10 @@ import Control.Applicative ((<|>))
 import Control.Monad (foldM, when)
 import Control.Monad.Except (MonadError (..))
 import Data.Coerce (coerce)
+import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NEList
+import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust, isNothing, mapMaybe)
 import Data.Medea.JSONType (JSONType (..))
@@ -52,53 +54,58 @@ import qualified Data.Medea.Parser.Spec.Schemata as Schemata
 import qualified Data.Medea.Parser.Spec.String as String
 import qualified Data.Medea.Parser.Spec.Type as Type
 import qualified Data.Set as S
+import Data.Set.NonEmpty (NESet)
 import qualified Data.Set.NonEmpty as NESet
 import Data.Text (Text)
+import Data.Vector (Vector)
 import qualified Data.Vector as V
 import Prelude
 
 data AnalysisError
-  = DuplicateSchemaName Identifier
+  = DuplicateSchemaName !Identifier
   | NoStartSchema
-  | DanglingTypeReference Identifier Identifier
+  | DanglingTypeReference !Identifier !Identifier
   | TypeRelationIsCyclic
-  | ReservedDefined Identifier
-  | DefinedButNotUsed Identifier
-  | MinMoreThanMax Identifier
-  | DanglingTypeRefProp Identifier Identifier
-  | DanglingTypeRefList Identifier Identifier
-  | DanglingTypeRefTuple Identifier Identifier
-  | DuplicatePropName Identifier MedeaString
-  | PropertyWithoutObject Identifier
-  | ListWithoutArray Identifier
-  | TupleWithoutArray Identifier
-  | StringValsWithoutString Identifier
+  | ReservedDefined !Identifier
+  | DefinedButNotUsed !Identifier
+  | MinMoreThanMax !Identifier
+  | DanglingTypeRefProp !Identifier !Identifier
+  | DanglingTypeRefList !Identifier !Identifier
+  | DanglingTypeRefTuple !Identifier !Identifier
+  | DuplicatePropName !Identifier !MedeaString
+  | PropertyWithoutObject !Identifier
+  | ListWithoutArray !Identifier
+  | TupleWithoutArray !Identifier
+  | StringValsWithoutString !Identifier
+  deriving stock (Eq, Show)
 
 data TypeNode
   = AnyNode
-  | PrimitiveNode JSONType
-  | CustomNode Identifier
-  deriving (Eq, Ord, Show)
+  | PrimitiveNode !JSONType
+  | CustomNode !Identifier
+  deriving stock (Eq, Ord, Show)
 
 data CompiledSchema = CompiledSchema
-  { schemaNode :: TypeNode,
-    typesAs :: NESet.NESet TypeNode,
-    minArrayLen :: Maybe Natural,
-    maxArrayLen :: Maybe Natural,
-    arrayTypes :: Maybe ArrayType,
-    props :: HM.HashMap Text (TypeNode, Bool),
-    additionalProps :: Bool,
-    additionalPropSchema :: TypeNode,
-    stringVals :: V.Vector Text
+  { schemaNode :: !TypeNode,
+    typesAs :: {-# UNPACK #-} !(NESet TypeNode),
+    minArrayLen :: !(Maybe Natural),
+    maxArrayLen :: !(Maybe Natural),
+    arrayTypes :: !(Maybe ArrayType),
+    props :: !(HashMap Text (TypeNode, Bool)),
+    additionalProps :: !Bool,
+    additionalPropSchema :: !TypeNode,
+    stringVals :: {-# UNPACK #-} !(Vector Text)
   }
   deriving stock (Eq, Show)
 
-data ArrayType = ListType TypeNode | TupleType (V.Vector TypeNode)
+data ArrayType
+  = ListType !TypeNode
+  | TupleType {-# UNPACK #-} !(Vector TypeNode)
   deriving stock (Eq, Show)
 
 checkAcyclic ::
   (MonadError AnalysisError m) =>
-  M.Map Identifier CompiledSchema ->
+  Map Identifier CompiledSchema ->
   m ()
 checkAcyclic m =
   when (isNothing . toAcyclic . getTypesAsGraph $ m) $
@@ -107,7 +114,7 @@ checkAcyclic m =
 compileSchemata ::
   (MonadError AnalysisError m) =>
   Schemata.Specification ->
-  m (M.Map Identifier CompiledSchema)
+  m (Map Identifier CompiledSchema)
 compileSchemata (Schemata.Specification v) = do
   m <- foldM go M.empty v
   checkStartSchema m
@@ -182,7 +189,7 @@ compileSchema scm = do
 
 checkStartSchema ::
   (MonadError AnalysisError m) =>
-  M.Map Identifier CompiledSchema ->
+  Map Identifier CompiledSchema ->
   m ()
 checkStartSchema m = case M.lookup (identFromReserved RStart) m of
   Nothing -> throwError NoStartSchema
@@ -194,7 +201,7 @@ checkDanglingReferences ::
   (MonadError AnalysisError m) =>
   (CompiledSchema -> [TypeNode]) ->
   (Identifier -> Identifier -> AnalysisError) ->
-  M.Map Identifier CompiledSchema ->
+  Map Identifier CompiledSchema ->
   m ()
 checkDanglingReferences getRefs err m = mapM_ go . M.toList $ m
   where
@@ -208,7 +215,7 @@ checkDanglingReferences getRefs err m = mapM_ go . M.toList $ m
 
 checkUnusedSchemata ::
   (MonadError AnalysisError m) =>
-  M.Map Identifier CompiledSchema ->
+  Map Identifier CompiledSchema ->
   m ()
 checkUnusedSchemata m = mapM_ checkUnused . M.keys $ m
   where
@@ -253,7 +260,7 @@ getTupleTypeLen :: Maybe ArrayType -> Maybe Natural
 getTupleTypeLen (Just (TupleType types)) = Just . fromIntegral . V.length $ types
 getTupleTypeLen _ = Nothing
 
-getTypesAsGraph :: M.Map Identifier CompiledSchema -> Cyclic.AdjacencyMap TypeNode
+getTypesAsGraph :: Map Identifier CompiledSchema -> Cyclic.AdjacencyMap TypeNode
 getTypesAsGraph = Cyclic.edges . concatMap intoTypesAsEdges . M.elems
 
 intoTypesAsEdges :: CompiledSchema -> [(TypeNode, TypeNode)]

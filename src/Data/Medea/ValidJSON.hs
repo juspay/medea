@@ -1,7 +1,8 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DerivingStrategies #-}
 
-module Data.Medea.ValidJSON (ValidJSONF(..)) where
+module Data.Medea.ValidJSON (ValidJSONF (..)) where
 
 import Control.DeepSeq (NFData (..))
 import Data.Aeson (Value (..))
@@ -20,10 +21,10 @@ data ValidJSONF a
   | NullF
   | BooleanF !Bool
   | NumberF {-# UNPACK #-} !Scientific
-  | StringF !Text
-  | ArrayF !(Vector a)
+  | StringF {-# UNPACK #-} !Text
+  | ArrayF {-# UNPACK #-} !(Vector a)
   | ObjectF !(HashMap Text a)
-  deriving (Functor, Typeable, Data)
+  deriving stock (Functor, Typeable, Data)
 
 instance Foldable ValidJSONF where
   {-# INLINE foldMap #-}

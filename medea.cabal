@@ -23,6 +23,7 @@ extra-source-files:
   README.md
   SPEC.md
   TUTORIAL.md
+  conformance/*
 
 source-repository head
   type:     git

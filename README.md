@@ -9,10 +9,11 @@ This repo contains both a specification (in ``SPEC.md``) and a reference
 implementation (in Haskell). We also have a [PureScript implementation available][medea-ps].
 
 Medea is named after [Jason's wife][medea]. Additionally, the name reflects the
-tensions between Jason and Medea as told in the legends:
+tensions between Jason and Medea as told in the legends, as told by the
+[implementer of ``medea-ps``][ben]:
 
-> I'm not sure if the name is because it loves JSON, or murdered all of JSON's kids
-> and flew away in a chariot pulled by dragons.
+> "I'm not sure if the name is because it loves JSON, or murdered all of JSON's kids
+> and flew away in a chariot pulled by dragons."
 
 ## Why Medea?
 
@@ -97,3 +98,4 @@ information.
 [medea-ps]: https://github.com/juspay/medea-ps
 [json-schema-validators]: https://json-schema.org/implementations.html#validators
 [medea]: https://en.wikipedia.org/wiki/Medea
+[ben]: https://github.com/Benjmhart

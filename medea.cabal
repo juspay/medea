@@ -1,6 +1,6 @@
 cabal-version:      2.2
 name:               medea
-version:            1.0.0
+version:            1.1.0
 synopsis:           A schema language for JSON.
 description:
   A reference implementation of a schema language, together with a conformance

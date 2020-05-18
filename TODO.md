@@ -15,6 +15,9 @@ anyone, they should become issues or PRs, and be removed from this list.
   (using something with efficient concatenation), or operate in `MonadLogic`.
 * Loaders (and validators) from files or `Handle`s should employ the [bracket
   pattern][bracket-pattern]. This is particularly pertinent to `Handle`s.
+* `ConflictingSpecRequirements` currently gets thrown on two arguably quite
+  different conditions. This should be split into two different data
+  constructors, indicating each of them separately.
 * `Natural` should be a newtype, and should probably be named something a bit
   less confusing vis a vis `base` (`MedeaNatural` would be appropriate).
 * `tupleSpec` member should be a `Vector`, not a list.

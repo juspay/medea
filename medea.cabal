@@ -35,7 +35,7 @@ common lang-common
     -Wincomplete-uni-patterns -Wredundant-constraints
 
 common test-common
-  ghc-options: -O2 -threaded -with-rtsopts=-N
+  ghc-options: -threaded -with-rtsopts=-N
 
 library
   import:          lang-common

@@ -12,6 +12,7 @@ jobs:
       matrix: 
         ghc: [8.6.5, 8.8.2, 8.10.1]
         os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-haskell@v1

@@ -12,32 +12,27 @@ where
 import Control.Monad.Except (MonadError (..), runExcept)
 import Control.Monad.IO.Class (MonadIO (..))
 import Data.ByteString (ByteString, hGetContents, readFile)
-import qualified Data.List.NonEmpty as NE
 import Data.Medea.Analysis
   ( AnalysisError (..),
     compileSchemata,
   )
 import Data.Medea.Parser.Primitive (toText, unwrap)
 import qualified Data.Medea.Parser.Spec.Schemata as Schemata
+import Data.Medea.Parser.Types (ParseError)
 import Data.Medea.Schema (Schema (..))
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8')
-import Data.Void (Void)
 import System.IO (Handle)
-import Text.Megaparsec (ParseError (..), bundleErrors, parse)
+import Text.Megaparsec (ParseErrorBundle, parse)
 import Prelude hiding (readFile)
 
 -- | Possible errors from loading Medea schemata.
 data LoaderError
   = -- | The data provided wasn't UTF-8.
     NotUtf8
-  | -- | An identifier was longer than allowed.
-    IdentifierTooLong
-  | -- | A length specification had no minimum/maximum specification.
-    EmptyLengthSpec
   | -- | Parsing failed.
-    ParserError 
-      !(ParseError Text Void) -- ^ The error we got. 
+    ParsingFailed
+      !(ParseErrorBundle Text ParseError) -- ^ The errors we got. 
   | -- | No schema labelled @$start@ was provided.
     StartSchemaMissing
   | -- | A schema was typed in terms of itself.
@@ -136,11 +131,7 @@ fromUtf8 ::
   m Schemata.Specification
 fromUtf8 sourceName utf8 =
   case parse Schemata.parseSpecification sourceName utf8 of
-    Left err -> case NE.head . bundleErrors $ err of
-      TrivialError o u e ->
-        throwError . ParserError . TrivialError o u $ e
-      -- TODO: Handle all kinds of ParseError
-      FancyError {} -> throwError IdentifierTooLong
+    Left err -> throwError . ParsingFailed $ err
     Right scm -> pure scm
 
 analyze ::

@@ -48,6 +48,7 @@ module Data.Medea
   ( -- * Schema loading
     Schema,
     LoaderError (..),
+    ParseError (..),
     buildSchema,
     loadSchemaFromFile,
     loadSchemaFromHandle,
@@ -93,6 +94,7 @@ import Data.Medea.Loader
     loadSchemaFromHandle,
   )
 import Data.Medea.Parser.Primitive (Identifier (..), ReservedIdentifier (..), identFromReserved)
+import Data.Medea.Parser.Types (ParseError(..))
 import Data.Medea.Schema (Schema (..))
 import Data.Medea.ValidJSON (ValidJSONF (..))
 import qualified Data.Set as S

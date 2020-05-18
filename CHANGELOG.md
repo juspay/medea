@@ -1,5 +1,6 @@
 # Dev
 
+- Export ``ParserError``, and have the loader return it on parsing errors.
 - Remove -O2 optimization flag for test-suite.
 
 # 1.0.0

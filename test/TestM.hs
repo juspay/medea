@@ -25,8 +25,7 @@ runTestM (TestM comp) = runExceptT comp
 
 isParseError :: Either LoaderError a -> Bool
 isParseError (Left NotUtf8) = True
-isParseError (Left IdentifierTooLong) = True
-isParseError (Left (ParserError _)) = True
+isParseError (Left (ParsingFailed _)) = True
 isParseError _ = False
 
 isSchemaError :: Either LoaderError a -> Bool

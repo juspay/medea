@@ -24,8 +24,6 @@ anyone, they should become issues or PRs, and be removed from this list.
 * `Object.Specification` should be a sum type; if additional properties aren't
   allowed, we'll _never_ have a type specification for it, and therefore, we
   should avoid having invalid states be representable.
-* CI should be set up for all the versions of GHC we officially support (both
-  for cabal v2 and stack).
 * The current SPEC mashes syntax and semantics together, and needs to be
   redrafted, perhaps separating them into two specifications (one for each).
 * There are elements of a formal model for Medea, but it's not clearly

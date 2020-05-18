@@ -8,6 +8,12 @@ Schema][json-schema], but is designed to be simpler and more self-contained.
 This repo contains both a specification (in ``SPEC.md``) and a reference
 implementation (in Haskell). We also have a [PureScript implementation available][medea-ps].
 
+Medea is named after [Jason's wife][medea]. Additionally, the name reflects the
+tensions between Jason and Medea as told in the legends:
+
+> I'm not sure if the name is because it loves JSON, or murdered all of JSON's kids
+> and flew away in a chariot pulled by dragons.
+
 ## Why Medea?
 
 Since JSON Schema exists, and has gone through a range of revisions, why does
@@ -90,3 +96,4 @@ information.
 [json-schema]: https://en.wikipedia.org/wiki/JSON#JSON_Schema 
 [medea-ps]: https://github.com/juspay/medea-ps
 [json-schema-validators]: https://json-schema.org/implementations.html#validators
+[medea]: https://en.wikipedia.org/wiki/Medea

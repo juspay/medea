@@ -11,7 +11,7 @@
 -- |
 -- Module: Data.Medea
 -- Description: A JSON schema language validator.
--- Copyright: (C) Juspay Pvt Ltd, 2020
+-- Copyright: (C) Juspay Technologies Pvt Ltd, 2020
 -- License: MIT
 -- Maintainer: koz.ross@retro-freedom.nz
 -- Stability: Experimental

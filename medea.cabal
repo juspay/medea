@@ -7,7 +7,7 @@ description:
   suite and a specification.
 
 homepage:           https://github.com/juspay/medea
-bug-reports:        mailto:koz.ross@retro-freedom.nz
+bug-reports:        https://github.com/juspay/medea/issues
 license:            MIT
 author:
   Koz Ross,

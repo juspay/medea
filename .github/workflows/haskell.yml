@@ -23,12 +23,6 @@ jobs:
   #        run: stack build
   #      - name: Run tests with Stack
   #        run: stack test
-  hlint:
-    runs-on: ubuntu-latest
-    steps:
-      - secrets: ["GITHUB_TOKEN"]
-      - name: HLint
-        uses: domdere/haskell-lint-action@master
   cabal:
     strategy: 
       matrix: 

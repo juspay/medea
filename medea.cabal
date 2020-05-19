@@ -1,6 +1,6 @@
 cabal-version:      2.2
 name:               medea
-version:            1.1.1
+version:            1.1.2
 synopsis:           A schema language for JSON.
 description:
   A reference implementation of a schema language, together with a conformance
@@ -28,6 +28,7 @@ extra-source-files:
   conformance/schema-builder/pass/*.medea
   conformance/schema-builder/fail/*.medea
   conformance/validation/*.medea
+  .hspec
 
 source-repository head
   type:     git

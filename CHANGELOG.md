@@ -1,8 +1,12 @@
 # Dev
 
+# 1.1.2
+
+- Ship our .hspec file to ensure all tests pass from an sdist.
+
 # 1.1.1
 
-- Ship our conformance suite as part of the sdist
+- Ship our conformance suite as part of the sdist.
 
 # 1.1.0
 

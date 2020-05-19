@@ -26,9 +26,9 @@ jobs:
   hlint:
     runs-on: ubuntu-latest
     steps:
-      - uses: domdere/haskell-lint-action@master
       - name: HLint
-      - secrets: ["GITHUB_TOKEN"]
+        uses: domdere/haskell-lint-action@master
+        secrets: ["GITHUB_TOKEN"]
   cabal:
     strategy: 
       matrix: 

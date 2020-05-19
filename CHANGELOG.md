@@ -1,5 +1,9 @@
 # Dev
 
+# 1.1.1
+
+- Ship our conformance suite as part of the sdist
+
 # 1.1.0
 
 - Widen bounds on ``parser-combinators``.

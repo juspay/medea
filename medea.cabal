@@ -23,7 +23,11 @@ extra-source-files:
   README.md
   SPEC.md
   TUTORIAL.md
-  conformance/*
+  conformance/parser/pass/*.medea
+  conformance/parser/fail/*.medea
+  conformance/schema-builder/pass/*.medea
+  conformance/schema-builder/fail/*.medea
+  conformance/validation/*.medea
 
 source-repository head
   type:     git

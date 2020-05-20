@@ -7,6 +7,24 @@ on:
     branches: [ master ]
 
 jobs:
+  stack:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-haskell@v1
+      with
+        stack-version 'latest'
+    - name: Setup
+      runs: stack setup --resolver lts-14.27
+    - name: Init
+      runs: stack init --resolver lts-14.27
+    - name: Build
+      runs: stack build
+    - name: Test
+      runs: stack test
   cabal:
     strategy: 
       matrix: 

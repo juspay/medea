@@ -15,8 +15,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-haskell@v1
-      with
-        stack-version 'latest'
+      with:
+        stack-version: 'latest'
     - name: Setup
       runs: stack setup --resolver lts-14.27
     - name: Init

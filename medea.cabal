@@ -9,6 +9,7 @@ description:
 homepage:           https://github.com/juspay/medea
 bug-reports:        https://github.com/juspay/medea/issues
 license:            MIT
+license-file:       LICENSE.md
 author:
   Koz Ross,
   Shaurya Gupta

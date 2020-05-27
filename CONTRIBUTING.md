@@ -20,9 +20,7 @@ described in `STANDARDS.md`, as well as what GHC versions we support (in
 If you are contributing source code, ensure that it follows all the requirements
 set out in `STANDARDS.md`. If you find a violation of these somewhere in the
 Medea codebase, let us know (or, if you like, fix it) - we appreciate it very
-much! Ensure that you follow the [PVP][pvp]. Until we have CI, please ensure
-that your changes still work on all supported GHC versions (see `README.md`);
-once we have CI in place, this will be checked for you.
+much! Medea follows the [PVP][pvp].
 
 If you are contributing documentation (of any sort), please ensure that:
 
@@ -31,6 +29,7 @@ If you are contributing documentation (of any sort), please ensure that:
 * Markdown renders properly on Github.
 
 In either case, please submit your changes via PR, and ensure a maintainer
-(either Koz Ross or Shaurya Gupta) is tagged for review.
+(either Koz Ross or Shaurya Gupta) is tagged for review. Ensure that
+``CHANGELOG.md`` reflects your changes; add them to the Dev section.
 
 [pvp]: https://pvp.haskell.org/

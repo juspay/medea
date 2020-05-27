@@ -24,11 +24,12 @@ anyone, they should become issues or PRs, and be removed from this list.
 * `Object.Specification` should be a sum type; if additional properties aren't
   allowed, we'll _never_ have a type specification for it, and therefore, we
   should avoid having invalid states be representable.
-* CI should be set up for all the versions of GHC we officially support (both
-  for cabal v2 and stack).
 * The current SPEC mashes syntax and semantics together, and needs to be
   redrafted, perhaps separating them into two specifications (one for each).
 * There are elements of a formal model for Medea, but it's not clearly
   elucidated or specified - this should happen.
+* Figure out why our CI settings break on the following combinations:
+  * Cabal latest, Windows latest, GHC 8.8.3
+  * Stack latest, macOS latest, GHC 8.6.5
 
 [bracket-pattern]: https://wiki.haskell.org/Bracket_pattern

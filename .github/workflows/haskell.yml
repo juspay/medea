@@ -20,8 +20,6 @@ jobs:
           - "8.10.1"
         exclude:
           - os: windows-latest
-            ghc: 8.10.1
-          - os: windows-latest
             ghc: 8.8.3
 
     steps:

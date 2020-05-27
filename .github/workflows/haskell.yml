@@ -42,7 +42,7 @@ jobs:
     - name: Build
       run: |
         cabal update
-        cabal build all --enable-tests --write-ghc-environment-files=always
+        cabal build all -v2 --enable-tests --write-ghc-environment-files=always
 
     - name: Test
       run: |

@@ -11,7 +11,7 @@ import Test.Hspec
     runIO,
     shouldSatisfy,
   )
-import TestM (isSchemaError, listMedeaFiles, runTestM)
+import TestM (isSchemaError, listMedeaFiles)
 
 main :: IO ()
 main = do
@@ -27,10 +27,10 @@ main = do
 
 makeFailTest :: FilePath -> Spec
 makeFailTest fp = do
-  result <- runIO . runTestM . loadSchemaFromFile $ fp
+  result <- runIO . loadSchemaFromFile $ fp
   it ("Shouldn't build: " ++ fp) (result `shouldSatisfy` isSchemaError)
 
 makePassTest :: FilePath -> Spec
 makePassTest fp = do
-  result <- runIO . runTestM . loadSchemaFromFile $ fp
+  result <- runIO . loadSchemaFromFile $ fp
   it ("Should build: " ++ fp) (result `shouldSatisfy` isRight)

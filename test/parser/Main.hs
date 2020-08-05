@@ -3,7 +3,7 @@ module Main where
 import Data.Foldable (traverse_)
 import Data.Medea (loadSchemaFromFile)
 import Test.Hspec (Spec, describe, hspec, it, runIO, shouldNotSatisfy, shouldSatisfy)
-import TestM (isParseError, listMedeaFiles, runTestM)
+import TestM (isParseError, listMedeaFiles)
 
 main :: IO ()
 main = do
@@ -18,10 +18,10 @@ main = do
 
 makeParseTestFail :: FilePath -> Spec
 makeParseTestFail fp = do
-  result <- runIO . runTestM . loadSchemaFromFile $ fp
+  result <- runIO . loadSchemaFromFile $ fp
   it ("Shouldn't parse: " ++ fp) (result `shouldSatisfy` isParseError)
 
 makeParseTestPass :: FilePath -> Spec
 makeParseTestPass fp = do
-  result <- runIO . runTestM . loadSchemaFromFile $ fp
+  result <- runIO . loadSchemaFromFile $ fp
   it ("Should parse: " ++ fp) (result `shouldNotSatisfy` isParseError)

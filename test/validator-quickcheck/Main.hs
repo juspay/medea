@@ -25,7 +25,7 @@ import Test.Hspec (Spec, describe, hspec, it, parallel, runIO, shouldNotSatisfy)
 import Test.Hspec.Core.Spec (SpecM)
 import Test.QuickCheck ((==>), Gen, Property, arbitrary, forAll, property)
 import qualified Test.QuickCheck.Gen as Gen
-import TestM (isParseError, isSchemaError, runTestM)
+import TestM (isParseError, isSchemaError)
 import Prelude hiding (lookup)
 
 main :: IO ()
@@ -316,11 +316,11 @@ testStringVals fp validStrings = do
 
 loadAndParse :: FilePath -> SpecM () Schema
 loadAndParse fp = do
-  result <- runIO . runTestM . loadSchemaFromFile $ fp
+  result <- runIO . loadSchemaFromFile $ fp
   it ("Should parse: " ++ fp) (result `shouldNotSatisfy` isParseError)
   it ("Should build: " ++ fp) (result `shouldNotSatisfy` isSchemaError)
   case result of
-    Left e -> error ("This should never happen: " ++ show e)
+    Left e -> error ("This should never happen: " <> show e)
     Right scm -> pure scm
 
 prependTestDir :: FilePath -> FilePath

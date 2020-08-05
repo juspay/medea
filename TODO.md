@@ -26,6 +26,5 @@ anyone, they should become issues or PRs, and be removed from this list.
   elucidated or specified - this should happen.
 * Figure out why our CI settings break on the following combinations:
   * Cabal latest, Windows latest, GHC 8.8.3
-  * Stack latest, macOS latest, GHC 8.6.5
 * Checking custom schemata currently relies on an unsafe construction. This
   should be replaced by a safer one.

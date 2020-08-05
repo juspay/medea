@@ -11,10 +11,6 @@ anyone, they should become issues or PRs, and be removed from this list.
   `Value` (that is, the JSON chunk that failed).
 * `WrongType` appears unused. This is either a mistake (and thus, it should be
   used), or if it's no longer necessary, it should be removed wholesale.
-* Given that the validator works in `MonadPlus`, it should collect all errors
-  (using something with efficient concatenation), or operate in `MonadLogic`.
-* Loaders (and validators) from files or `Handle`s should employ the [bracket
-  pattern][bracket-pattern]. This is particularly pertinent to `Handle`s.
 * `ConflictingSpecRequirements` currently gets thrown on two arguably quite
   different conditions. This should be split into two different data
   constructors, indicating each of them separately.
@@ -30,6 +26,5 @@ anyone, they should become issues or PRs, and be removed from this list.
   elucidated or specified - this should happen.
 * Figure out why our CI settings break on the following combinations:
   * Cabal latest, Windows latest, GHC 8.8.3
-  * Stack latest, macOS latest, GHC 8.6.5
-
-[bracket-pattern]: https://wiki.haskell.org/Bracket_pattern
+* Checking custom schemata currently relies on an unsafe construction. This
+  should be replaced by a safer one.

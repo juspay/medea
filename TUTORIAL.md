@@ -287,7 +287,6 @@ is either a JSON boolean or the JSON ``null``.
 To validate a JSON value using Medea from Haskell:
 
 ```Haskell
-import Control.Monad.Trans.Except (runExcept, runExceptT)
 import Data.Aeson (Value)
 import Data.Medea.Loader (loadSchemaFromFile)
 import Data.Medea (validate)
@@ -295,12 +294,12 @@ import Data.Medea (validate)
 main :: IO ()
 main = do
   -- Compile a Medea schema graph from its file representation
-  result <- runExceptT . loadSchemaFromFile $ "./my-schema.medea"
+  result <- loadSchemaFromFile "./my-schema.medea"
   case result of
     Left e -> print e
     Right scm -> do
       -- Validate against the schema graph we just compiled 
-      validation <- runExcept $ validate scm (myJson :: Value)
+      validation <- validate scm (myJson :: Value)
       case validation of 
         Left e -> print e
         Right _ -> putStrLn "JSON is valid against schema"

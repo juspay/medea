@@ -1,5 +1,14 @@
 # Dev
 
+# 1.2.0
+
+- Widen QuickCheck bounds.
+- Remove MonadError from the top-level API.
+- Use strict, rather than lazy, bytestrings for parser input. This fixes issues
+  with resource safety.
+- Test with GHC 8.8.4.
+- Change `stack.yaml` to use LTS 15.15.
+
 # 1.1.2
 
 - Ship our .hspec file to ensure all tests pass from an sdist.

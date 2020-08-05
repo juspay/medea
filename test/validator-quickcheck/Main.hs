@@ -2,7 +2,6 @@
 
 module Main where
 
-import Control.Monad.Except (runExcept)
 import Data.Aeson (Array, Object, ToJSON, Value, Value (..), encode)
 import Data.Aeson.Arbitrary
   ( ObjGenOpts (..),
@@ -16,6 +15,7 @@ import Data.Aeson.Arbitrary
     isObject,
     isString,
   )
+import Data.ByteString.Lazy (toStrict)
 import Data.Either (isLeft, isRight)
 import Data.HashMap.Strict (filterWithKey, lookup)
 import Data.Medea (Schema, loadSchemaFromFile, validate)
@@ -25,7 +25,7 @@ import Test.Hspec (Spec, describe, hspec, it, parallel, runIO, shouldNotSatisfy)
 import Test.Hspec.Core.Spec (SpecM)
 import Test.QuickCheck ((==>), Gen, Property, arbitrary, forAll, property)
 import qualified Test.QuickCheck.Gen as Gen
-import TestM (isParseError, isSchemaError, runTestM)
+import TestM (isParseError, isSchemaError)
 import Prelude hiding (lookup)
 
 main :: IO ()
@@ -211,29 +211,26 @@ main = hspec . parallel $ do
           tuplePreds = [isObject .|| isNull, isString .|| isNumber]
         }
 
-data ObjTestParams
-  = ObjTestParams
-      { objTestOpts :: ObjGenOpts,
-        objTestPath :: FilePath,
-        objTestPred :: Object -> Bool,
-        -- | The predice to be used on additional properties
-        objAdditionalPred :: Value -> Bool
-      }
+data ObjTestParams = ObjTestParams
+  { objTestOpts :: ObjGenOpts,
+    objTestPath :: FilePath,
+    objTestPred :: Object -> Bool,
+    -- | The predice to be used on additional properties
+    objAdditionalPred :: Value -> Bool
+  }
 
-data ListTestParams
-  = ListTestParams
-      { listTestOpts :: (Int, Int),
-        listTestPath :: FilePath,
-        elementPred :: Value -> Bool,
-        lenPred :: Array -> Bool
-      }
+data ListTestParams = ListTestParams
+  { listTestOpts :: (Int, Int),
+    listTestPath :: FilePath,
+    elementPred :: Value -> Bool,
+    lenPred :: Array -> Bool
+  }
 
-data TupleTestParams
-  = TupleTestParams
-      { tupleTestOpts :: (Int, Int),
-        tupleTestPath :: FilePath,
-        tuplePreds :: [Value -> Bool]
-      }
+data TupleTestParams = TupleTestParams
+  { tupleTestOpts :: (Int, Int),
+    tupleTestPath :: FilePath,
+    tuplePreds :: [Value -> Bool]
+  }
 
 -- Helpers
 
@@ -285,13 +282,13 @@ testTuple (TupleTestParams opts fp preds) = do
 validationSuccess :: (ToJSON a, Show a) => Gen a -> (a -> Bool) -> Schema -> Property
 validationSuccess gen p scm = property $ forAll gen prop
   where
-    prop v = p v ==> isRight . runExcept . validate scm . encode $ v
+    prop v = p v ==> isRight . validate scm . toStrict . encode $ v
 
 -- "validation failed" property
 validationFail :: (ToJSON a, Show a) => Gen a -> (a -> Bool) -> Schema -> Property
 validationFail gen p scm = property $ forAll gen prop
   where
-    prop v = p v ==> isLeft . runExcept . validate scm . encode $ v
+    prop v = p v ==> isLeft . validate scm . toStrict . encode $ v
 
 -- Returns true iff the value is an object with the given property and the
 -- property-value satisfies the predicate.
@@ -319,11 +316,11 @@ testStringVals fp validStrings = do
 
 loadAndParse :: FilePath -> SpecM () Schema
 loadAndParse fp = do
-  result <- runIO . runTestM . loadSchemaFromFile $ fp
+  result <- runIO . loadSchemaFromFile $ fp
   it ("Should parse: " ++ fp) (result `shouldNotSatisfy` isParseError)
   it ("Should build: " ++ fp) (result `shouldNotSatisfy` isSchemaError)
   case result of
-    Left e -> error ("This should never happen: " ++ show e)
+    Left e -> error ("This should never happen: " <> show e)
     Right scm -> pure scm
 
 prependTestDir :: FilePath -> FilePath

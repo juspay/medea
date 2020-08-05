@@ -1,5 +1,5 @@
 ---
-resolver: lts-14.27
+resolver: lts-15.15
 packages:
   - .
 extra-deps:
@@ -9,3 +9,4 @@ extra-deps:
   - algebraic-graphs-0.5@sha256:6eeec5ed1687ff7aa916e7bf9f02f51aaabde6f314dc0b7b1a84156974d7da73,8071
   - nonempty-containers-0.3.3.0@sha256:f306bdbb271fb43057e0205293915bbfafc92f9960d89c0ea457625aad752eca,2717
   - nonempty-vector-0.2.0.1@sha256:332f8d48b5de02c1ab4e52c99973d4ca42dcbce21a073ffd1b5b2da1221e113f,1753
+  - smash-0.1.1.0@sha256:593381bad038ff93898a8a1422c6e81fc4a2a6fb23b64afa2f758f56607b83dc,1583

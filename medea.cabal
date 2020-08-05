@@ -118,7 +118,7 @@ test-suite quickcheck-validator
     , aeson
     , bytestring
     , hspec-core            ^>=2.7.1
-    , QuickCheck            >=2.13.2   && <2.14.0
+    , QuickCheck            >=2.13.2   && <2.15.0
     , quickcheck-instances  ^>=0.3.22
     , text
     , unordered-containers  ^>=0.2.10.0

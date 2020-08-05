@@ -87,7 +87,6 @@ library
     , mtl                   ^>=2.2.2
     , nonempty-containers   ^>=0.3.3.0
     , parser-combinators    >=1.1.0    && <2.0.0
-    , safe-exceptions       ^>=0.1.7.0
     , scientific            ^>=0.3.6.2
     , smash                 ^>=0.1.1.0
     , text                  ^>=1.2.3.1

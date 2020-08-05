@@ -7,6 +7,7 @@
 - Use strict, rather than lazy, bytestrings for parser input. This fixes issues
   with resource safety.
 - Test with GHC 8.8.4 (including CI).
+- Change `stack.yaml` to use LTS 15.15.
 
 # 1.1.2
 

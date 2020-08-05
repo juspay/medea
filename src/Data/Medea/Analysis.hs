@@ -9,6 +9,7 @@ module Data.Medea.Analysis
     CompiledSchema (..),
     TypeNode (..),
     compileSchemata,
+    arrayBounds,
   )
 where
 
@@ -17,6 +18,7 @@ import qualified Algebra.Graph.AdjacencyMap as Cyclic
 import Control.Applicative ((<|>))
 import Control.Monad (foldM, when)
 import Control.Monad.Except (MonadError (..))
+import Data.Can (Can (..))
 import Data.Coerce (coerce)
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
@@ -97,6 +99,13 @@ data CompiledSchema = CompiledSchema
     stringVals :: {-# UNPACK #-} !(Vector Text)
   }
   deriving stock (Eq, Show)
+
+arrayBounds :: CompiledSchema -> Can Natural Natural
+arrayBounds scm = case (minArrayLen scm, maxArrayLen scm) of
+  (Nothing, Nothing) -> Non
+  (Just lo, Nothing) -> One lo
+  (Nothing, Just hi) -> Eno hi
+  (Just lo, Just hi) -> Two lo hi
 
 data ArrayType
   = ListType !TypeNode

@@ -2,7 +2,6 @@
 
 module Main where
 
-import Control.Monad.Except (runExcept)
 import Data.Aeson (Array, Object, ToJSON, Value, Value (..), encode)
 import Data.Aeson.Arbitrary
   ( ObjGenOpts (..),
@@ -16,6 +15,7 @@ import Data.Aeson.Arbitrary
     isObject,
     isString,
   )
+import Data.ByteString.Lazy (toStrict)
 import Data.Either (isLeft, isRight)
 import Data.HashMap.Strict (filterWithKey, lookup)
 import Data.Medea (Schema, loadSchemaFromFile, validate)
@@ -211,29 +211,26 @@ main = hspec . parallel $ do
           tuplePreds = [isObject .|| isNull, isString .|| isNumber]
         }
 
-data ObjTestParams
-  = ObjTestParams
-      { objTestOpts :: ObjGenOpts,
-        objTestPath :: FilePath,
-        objTestPred :: Object -> Bool,
-        -- | The predice to be used on additional properties
-        objAdditionalPred :: Value -> Bool
-      }
+data ObjTestParams = ObjTestParams
+  { objTestOpts :: ObjGenOpts,
+    objTestPath :: FilePath,
+    objTestPred :: Object -> Bool,
+    -- | The predice to be used on additional properties
+    objAdditionalPred :: Value -> Bool
+  }
 
-data ListTestParams
-  = ListTestParams
-      { listTestOpts :: (Int, Int),
-        listTestPath :: FilePath,
-        elementPred :: Value -> Bool,
-        lenPred :: Array -> Bool
-      }
+data ListTestParams = ListTestParams
+  { listTestOpts :: (Int, Int),
+    listTestPath :: FilePath,
+    elementPred :: Value -> Bool,
+    lenPred :: Array -> Bool
+  }
 
-data TupleTestParams
-  = TupleTestParams
-      { tupleTestOpts :: (Int, Int),
-        tupleTestPath :: FilePath,
-        tuplePreds :: [Value -> Bool]
-      }
+data TupleTestParams = TupleTestParams
+  { tupleTestOpts :: (Int, Int),
+    tupleTestPath :: FilePath,
+    tuplePreds :: [Value -> Bool]
+  }
 
 -- Helpers
 
@@ -285,13 +282,13 @@ testTuple (TupleTestParams opts fp preds) = do
 validationSuccess :: (ToJSON a, Show a) => Gen a -> (a -> Bool) -> Schema -> Property
 validationSuccess gen p scm = property $ forAll gen prop
   where
-    prop v = p v ==> isRight . runExcept . validate scm . encode $ v
+    prop v = p v ==> isRight . validate scm . toStrict . encode $ v
 
 -- "validation failed" property
 validationFail :: (ToJSON a, Show a) => Gen a -> (a -> Bool) -> Schema -> Property
 validationFail gen p scm = property $ forAll gen prop
   where
-    prop v = p v ==> isLeft . runExcept . validate scm . encode $ v
+    prop v = p v ==> isLeft . validate scm . toStrict . encode $ v
 
 -- Returns true iff the value is an object with the given property and the
 -- property-value satisfies the predicate.

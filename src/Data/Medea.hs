@@ -29,17 +29,16 @@
 -- loaded.
 --
 -- > import Data.Medea (loadSchemaFromFile, validateFromFile)
--- > import Control.Monad.Except (runExceptT)
 -- >
 -- > main :: IO ()
 -- > main = do
 -- >   -- try to load the schema graph file
--- >   loaded <- runExceptT . loadSchemaFromFile $ "/path/to/schema.medea"
+-- >   loaded <- loadSchemaFromFile "/path/to/schema.medea"
 -- >   case loaded of
 -- >      Left err -> print err -- or some other handling
 -- >      Right scm -> do
 -- >        -- try to validate
--- >        validated <- runExceptT . validateFromFile scm $ "/path/to/my.json"
+-- >        validated <- validateFromFile scm "/path/to/my.json"
 -- >        case validated of
 -- >          Left err -> print err -- or some other handling
 -- >          Right validJson -> print validJson -- or some other useful thing

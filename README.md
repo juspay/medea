@@ -82,8 +82,8 @@ We support every major GHC version from 8.6 onwards, for its most current minor
 version. At the moment, this means:
 
 * 8.6.5
-* 8.8.3
-* 8.10.1
+* 8.8.4
+* 8.10.2
 
 We support both Stack and Cabal (v2) builds. We aim to be cross-platform where
 possible - if the dependencies work on the platform, Medea should too.

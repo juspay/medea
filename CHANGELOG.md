@@ -1,5 +1,17 @@
 # Dev
 
+# 1.3.0
+
+- Adds GHC 9.2.8 support
+- Fix build errors with GHC 9.2.8
+- Remove version bounds on dependency packages in Cabal file
+- Adds new "cabal.project" file to project
+- Handle Aeson V2.x `KeyMap` <-> `HashMap` data-type changes
+- Handle Aeson V2.x `Key` <-> `Text` key-type changes
+- Fix broken test-suite after project GHC upgrade
+- Test with GHC 9.2.8
+- Update `stack.yaml` to use LTS 20.26 (ghc 9.2.8 package-set)
+
 # 1.2.0
 
 - Widen QuickCheck bounds.

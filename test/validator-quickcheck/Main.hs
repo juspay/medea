@@ -15,9 +15,10 @@ import Data.Aeson.Arbitrary
     isObject,
     isString,
   )
+import qualified Data.Aeson.Key as AesonKey
+import qualified Data.Aeson.KeyMap as AKM
 import Data.ByteString.Lazy (toStrict)
 import Data.Either (isLeft, isRight)
-import Data.HashMap.Strict (filterWithKey, lookup)
 import Data.Medea (Schema, loadSchemaFromFile, validate)
 import Data.Text (Text)
 import qualified Data.Vector as V
@@ -293,16 +294,16 @@ validationFail gen p scm = property $ forAll gen prop
 -- Returns true iff the value is an object with the given property and the
 -- property-value satisfies the predicate.
 hasProperty :: Text -> (Value -> Bool) -> Object -> Bool
-hasProperty propName p obj = maybe False p $ lookup propName obj
+hasProperty propName p obj = maybe False p $ AKM.lookup (AesonKey.fromText propName) obj
 
 -- Like hasProperty but is also true when the given property is absent.
 hasOptionalProperty :: Text -> (Value -> Bool) -> Object -> Bool
-hasOptionalProperty propName p obj = maybe True p $ lookup propName obj
+hasOptionalProperty propName p obj = maybe True p $ AKM.lookup (AesonKey.fromText propName) obj
 
 makeMapPred :: ObjGenOpts -> (Value -> Bool) -> Object -> Bool
-makeMapPred (ObjGenOpts props optProps _ _) p = all p . filterWithKey (\k _ -> k `notElem` specifiedProps)
+makeMapPred (ObjGenOpts props optProps _ _) p = all p . AKM.filterWithKey (\k _ -> k `notElem` specifiedProps)
   where
-    specifiedProps = props ++ optProps
+    specifiedProps = fmap (AesonKey.fromText) $ props ++ optProps
 
 testStringVals :: FilePath -> [String] -> Spec
 testStringVals fp validStrings = do

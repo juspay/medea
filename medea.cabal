@@ -1,6 +1,6 @@
 cabal-version:      2.2
 name:               medea
-version:            1.2.0
+version:            1.3.0
 synopsis:           A schema language for JSON.
 description:
   A reference implementation of a schema language, together with a conformance
@@ -18,7 +18,7 @@ maintainer:         koz.ross@retro-freedom.nz
 copyright:          Juspay Technologies Pvt Ltd (C) 2020
 category:           Data
 build-type:         Simple
-tested-with:        GHC ==8.6.5 || ==8.8.4 || ==8.10.1
+tested-with:        GHC ==8.6.5 || ==8.8.4 || ==8.10.1 || ==9.2.8
 extra-source-files:
   .hspec
   CHANGELOG.md
@@ -46,9 +46,9 @@ common test-common
   import:         lang-common
   other-modules:  TestM
   build-depends:
-    , directory  ^>=1.3.3.0
-    , filepath   ^>=1.4.2.1
-    , hspec      >=2.7.1   && <2.9.0
+    , directory
+    , filepath
+    , hspec
     , medea
     , mtl
 
@@ -75,24 +75,24 @@ library
     Data.Medea.ValidJSON
 
   build-depends:
-    , aeson                 >=1.4.6.0  && <2.0.0.0
-    , algebraic-graphs      ^>=0.5
-    , bytestring            ^>=0.10.8.2
-    , containers            ^>=0.6.0.1
-    , deepseq               ^>=1.4.4.0
-    , free                  ^>=5.1.3
-    , hashable              >=1.2.7.0  && <1.4.0.0
-    , megaparsec            >=8.0.0    && <10.0.0
-    , microlens-ghc         ^>=0.4.12
-    , mtl                   ^>=2.2.2
-    , nonempty-containers   ^>=0.3.3.0
-    , parser-combinators    >=1.1.0    && <2.0.0
-    , scientific            ^>=0.3.6.2
-    , smash                 ^>=0.1.1.0
-    , text                  ^>=1.2.3.1
-    , unordered-containers  ^>=0.2.10.0
-    , vector                ^>=0.12.0.3
-    , vector-instances      ^>=3.4
+    , aeson
+    , algebraic-graphs
+    , bytestring
+    , containers
+    , deepseq
+    , free
+    , hashable
+    , megaparsec
+    , microlens-ghc
+    , mtl
+    , nonempty-containers
+    , parser-combinators
+    , scientific
+    , smash
+    , text
+    , unordered-containers
+    , vector
+    , vector-instances
 
   hs-source-dirs:  src
 
@@ -116,11 +116,11 @@ test-suite quickcheck-validator
   build-depends:
     , aeson
     , bytestring
-    , hspec-core            >=2.7.1    && <2.9.0
-    , QuickCheck            >=2.13.2   && <2.15.0
-    , quickcheck-instances  ^>=0.3.22
+    , hspec-core
+    , QuickCheck
+    , quickcheck-instances
     , text
-    , unordered-containers  ^>=0.2.10.0
+    , unordered-containers
     , vector
 
   hs-source-dirs: test/validator-quickcheck

@@ -77,6 +77,7 @@ import Control.Monad.RWS.Strict (RWST (..), evalRWST)
 import Control.Monad.Reader (MonadReader, asks)
 import Control.Monad.State.Strict (MonadState (..), gets)
 import Data.Aeson (Array, Object, Value (..), decodeStrict)
+import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.ByteString as BS
 import Data.ByteString (ByteString)
 import Data.Can (Can (..))
@@ -163,7 +164,7 @@ toValue (ValidatedJSON (_ :< f)) = case f of
   NumberF n -> Number n
   StringF s -> String s
   ArrayF v -> Array . fmap (toValue . coerce) $ v
-  ObjectF hm -> Object . fmap (toValue . coerce) $ hm
+  ObjectF hm -> Object . fmap (toValue . coerce) $ AKM.fromHashMapText hm
 
 -- | What schema did this validate against?
 validAgainst :: ValidatedJSON -> SchemaInformation
@@ -332,7 +333,7 @@ checkPrim v = do
     Object obj -> case par of
       -- Fast path (no object spec)
       Nothing ->
-        put (anySet, Nothing) >> (ObjectSchema :<) . ObjectF <$> traverse checkTypes obj
+        put (anySet, Nothing) >> (ObjectSchema :<) . ObjectF <$> traverse checkTypes (AKM.toHashMapText obj)
       Just parIdent -> checkObject obj parIdent
 
 -- check if the array satisfies the corresponding specification.
@@ -361,7 +362,7 @@ checkArray arr parIdent = do
 -- check if object properties satisfy the corresponding specification.
 checkObject :: Object -> Identifier -> ValidationM (Cofree ValidJSONF SchemaInformation)
 checkObject obj parIdent = do
-  valsAndTypes <- pairPropertySchemaAndVal obj parIdent
+  valsAndTypes <- pairPropertySchemaAndVal (AKM.toHashMapText obj) parIdent
   checkedObj <- traverse go valsAndTypes
   pure (ObjectSchema :< ObjectF checkedObj)
   where

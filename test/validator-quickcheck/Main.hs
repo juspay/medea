@@ -20,6 +20,8 @@ import Data.Either (isLeft, isRight)
 import Data.HashMap.Strict (filterWithKey, lookup)
 import Data.Medea (Schema, loadSchemaFromFile, validate)
 import Data.Text (Text)
+import qualified Data.Aeson.Key as AK
+import qualified Data.Aeson.KeyMap as KM
 import qualified Data.Vector as V
 import Test.Hspec (Spec, describe, hspec, it, parallel, runIO, shouldNotSatisfy)
 import Test.Hspec.Core.Spec (SpecM)
@@ -293,14 +295,15 @@ validationFail gen p scm = property $ forAll gen prop
 -- Returns true iff the value is an object with the given property and the
 -- property-value satisfies the predicate.
 hasProperty :: Text -> (Value -> Bool) -> Object -> Bool
-hasProperty propName p obj = maybe False p $ lookup propName obj
+hasProperty propName p obj = maybe False p $ KM.lookup (AK.fromText propName) obj
 
 -- Like hasProperty but is also true when the given property is absent.
 hasOptionalProperty :: Text -> (Value -> Bool) -> Object -> Bool
-hasOptionalProperty propName p obj = maybe True p $ lookup propName obj
+hasOptionalProperty propName p obj = maybe True p $ KM.lookup (AK.fromText propName) obj
 
 makeMapPred :: ObjGenOpts -> (Value -> Bool) -> Object -> Bool
-makeMapPred (ObjGenOpts props optProps _ _) p = all p . filterWithKey (\k _ -> k `notElem` specifiedProps)
+makeMapPred (ObjGenOpts props optProps _ _) p = 
+  all p . KM.filterWithKey (\k _ -> AK.toText k `notElem` specifiedProps)
   where
     specifiedProps = props ++ optProps
 

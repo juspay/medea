@@ -1,0 +1,113 @@
+{
+  "nodes": {
+    "flake-parts": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1736143030,
+        "narHash": "sha256-+hu54pAoLDEZT9pjHlqL9DNzWz0NbUn8NEAHP7PQPzU=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "b905f6fc23a9051a6e1b741e1438dbfc0634c6de",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "fourmolu-nix": {
+      "locked": {
+        "lastModified": 1707266073,
+        "narHash": "sha256-tCFzZQJicDdYjnuJiNK4hiiRAH7c2wQzMhOCdUMbVKE=",
+        "owner": "jedimahdi",
+        "repo": "fourmolu-nix",
+        "rev": "717f5a91b0d7b97b1be7ecc3a0fd42d37ffe1c9b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jedimahdi",
+        "repo": "fourmolu-nix",
+        "type": "github"
+      }
+    },
+    "git-hooks": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1735882644,
+        "narHash": "sha256-3FZAG+pGt3OElQjesCAWeMkQ7C/nB1oTHLRQ8ceP110=",
+        "owner": "cachix",
+        "repo": "git-hooks.nix",
+        "rev": "a5a961387e75ae44cc20f0a57ae463da5e959656",
+        "type": "github"
+      },
+      "original": {
+        "owner": "cachix",
+        "repo": "git-hooks.nix",
+        "type": "github"
+      }
+    },
+    "haskell-flake": {
+      "locked": {
+        "lastModified": 1735436109,
+        "narHash": "sha256-WIn6GVY+UiaCL+kUeF8cfPXE5kxF4UPcFGx62U3kmAE=",
+        "owner": "srid",
+        "repo": "haskell-flake",
+        "rev": "207b1d67106a799df892b380ed9dc7578746fbc1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "haskell-flake",
+        "type": "github"
+      }
+    },
+    "nixos-unified": {
+      "locked": {
+        "lastModified": 1735833372,
+        "narHash": "sha256-I8aD120ikq/WWFQ95MacxH/0RETpM+SFQX7ess7CvRA=",
+        "owner": "srid",
+        "repo": "nixos-unified",
+        "rev": "61d3fc775abc937b0d8dfc687d3116f841b59fb7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "nixos-unified",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1698266953,
+        "narHash": "sha256-jf72t7pC8+8h8fUslUYbWTX5rKsRwOzRMX8jJsGqDXA=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "75a52265bda7fd25e06e3a67dee3f0354e73243c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "75a52265bda7fd25e06e3a67dee3f0354e73243c",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-parts": "flake-parts",
+        "fourmolu-nix": "fourmolu-nix",
+        "git-hooks": "git-hooks",
+        "haskell-flake": "haskell-flake",
+        "nixos-unified": "nixos-unified",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

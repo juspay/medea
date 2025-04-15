@@ -77,6 +77,8 @@ import Control.Monad.RWS.Strict (RWST (..), evalRWST)
 import Control.Monad.Reader (MonadReader, asks)
 import Control.Monad.State.Strict (MonadState (..), gets)
 import Data.Aeson (Array, Object, Value (..), decodeStrict)
+import qualified Data.Aeson.Key as AK
+import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString as BS
 import Data.ByteString (ByteString)
 import Data.Can (Can (..))
@@ -84,8 +86,6 @@ import Data.Coerce (coerce)
 import Data.Data (Data)
 import Data.Foldable (asum, traverse_)
 import Data.Functor (($>))
-import Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HM
 import Data.Hashable (Hashable (..))
 import qualified Data.Map.Strict as M
 import Data.Medea.Analysis (ArrayType (..), CompiledSchema (..), TypeNode (..), arrayBounds)
@@ -186,15 +186,15 @@ data ValidationError
   | -- | We found a JSON object with a property that wasn't specified in its
     -- schema, and additional properties are forbidden.
     AdditionalPropFoundButBanned
-      {-# UNPACK #-} !Text
+      {-# UNPACK #-} !KM.Key
       -- ^ The property in question.
-      {-# UNPACK #-} !Text
+      {-# UNPACK #-} !KM.Key
       -- ^ The name of the specifying schema.
   | -- | We found a JSON object which is missing a property its schema requires.
     RequiredPropertyIsMissing
-      {-# UNPACK #-} !Text
+      {-# UNPACK #-} !KM.Key
       -- ^ The property in question.
-      {-# UNPACK #-} !Text
+      {-# UNPACK #-} !KM.Key
       -- ^ The name of the specifying schema.
   | -- | We found a JSON array which falls outside of the minimum or maximum
     -- length constraints its corresponding schema demands.
@@ -370,24 +370,24 @@ checkObject obj parIdent = do
       checkTypes val
 
 pairPropertySchemaAndVal ::
-  HashMap Text Value -> Identifier -> ValidationM (HashMap Text (Value, TypeNode))
+  KM.KeyMap Value -> Identifier -> ValidationM (KM.KeyMap (Value, TypeNode))
 pairPropertySchemaAndVal obj parIdent = do
   scm <- lookupSchema parIdent
-  mappedObj <- traverse (pairProperty scm) . HM.mapWithKey (,) $ obj
-  traverse_ isMatched . HM.mapWithKey (,) . props $ scm
+  mappedObj <- traverse (pairProperty scm) . KM.mapWithKey (,) $ obj
+  traverse_ isMatched . KM.mapWithKey (,) . props $ scm
   pure mappedObj
   where
     -- maps each property value with the schema it should validate against
-    pairProperty scm (propName, v) = case HM.lookup propName . props $ scm of
+    pairProperty scm (propName, v) = case KM.lookup propName . props $ scm of
       Just (typeNode, _) -> pure (v, typeNode)
       Nothing ->
         if additionalProps scm
           then pure (v, additionalPropSchema scm)
-          else failWith . AdditionalPropFoundButBanned (textify parIdent) $ propName
+          else failWith . AdditionalPropFoundButBanned (AK.fromText $ textify parIdent) $ propName
     -- throws an error if a non-optional property was not found in the object
-    isMatched (propName, (_, optional)) = case HM.lookup propName obj of
+    isMatched (propName, (_, optional)) = case KM.lookup propName obj of
       Nothing ->
-        unless optional . failWith . RequiredPropertyIsMissing (textify parIdent) $ propName
+        unless optional . failWith . RequiredPropertyIsMissing (AK.fromText $ textify parIdent) $ propName
       Just _ -> pure ()
 
 -- checkCustoms removes all non custom nodes from the typeNode set and

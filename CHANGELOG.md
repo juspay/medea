@@ -1,5 +1,11 @@
 # Dev
 
+# 1.3.0
+
+* Upgraded to Aeson v2 (1.5.6.0 -> 2.1.2.1)
+* Upgraded from GHC-8.10.7 to GHC-9.2.8
+* Changed HashMap -> KeyMap
+
 # 1.2.0
 
 - Widen QuickCheck bounds.

@@ -6,15 +6,16 @@ module Data.Medea.ValidJSON (ValidJSONF (..)) where
 
 import Control.DeepSeq (NFData (..))
 import Data.Aeson (Value (..))
+import qualified Data.Aeson.KeyMap as KM
 import Data.Data (Data)
-import Data.Functor.Classes (Eq1 (..), Show1 (..))
-import Data.HashMap.Strict (HashMap)
+import Data.Functor.Classes (Eq1 (..), Show1 (..), eq1)
 import Data.Hashable (Hashable (..))
 import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import Data.Vector (Vector)
 import Data.Vector.Instances ()
+import qualified Data.Map.Strict as Map
 
 data ValidJSONF a
   = AnythingF !Value
@@ -23,7 +24,7 @@ data ValidJSONF a
   | NumberF {-# UNPACK #-} !Scientific
   | StringF {-# UNPACK #-} !Text
   | ArrayF {-# UNPACK #-} !(Vector a)
-  | ObjectF !(HashMap Text a)
+  | ObjectF !(KM.KeyMap a)
   deriving stock (Functor, Typeable, Data)
 
 instance Foldable ValidJSONF where
@@ -64,7 +65,13 @@ instance Eq1 ValidJSONF where
   liftEq _ (NumberF n) (NumberF n') = n == n'
   liftEq _ (StringF s) (StringF s') = s == s'
   liftEq f (ArrayF v) (ArrayF v') = liftEq f v v'
-  liftEq f (ObjectF hm) (ObjectF hm') = liftEq f hm hm'
+  liftEq f (ObjectF hm) (ObjectF hm') = 
+    Map.foldrWithKey (\k v acc -> 
+      acc && case Map.lookup k (KM.toMapText hm') of
+        Nothing -> False 
+        Just v' -> f v v'
+    ) True (KM.toMapText hm)
+    && KM.size hm == KM.size hm'
   liftEq _ _ _ = False
 
 instance Show1 ValidJSONF where
@@ -74,7 +81,21 @@ instance Show1 ValidJSONF where
   liftShowsPrec _ _ prec (NumberF n) = showsPrec prec n
   liftShowsPrec _ _ prec (StringF s) = showsPrec prec s
   liftShowsPrec f g prec (ArrayF v) = liftShowsPrec f g prec v
-  liftShowsPrec f g prec (ObjectF hm) = liftShowsPrec f g prec hm
+  liftShowsPrec f _ _ (ObjectF hm) = 
+    showChar '{' . 
+    showMap . 
+    showChar '}'
+    where 
+      showMap = KM.foldrWithKey showKV id hm
+      showKV k v next = 
+        showString (show k) . 
+        showString ": " . 
+        f 0 v . 
+        showString ", " . 
+        next
+
+instance Eq a => Eq (ValidJSONF a) where
+    (==) = eq1
 
 instance (Hashable a) => Hashable (ValidJSONF a) where
   {-# INLINE hashWithSalt #-}

@@ -20,6 +20,8 @@ import Control.Monad (foldM, when)
 import Control.Monad.Except (MonadError (..))
 import Data.Can (Can (..))
 import Data.Coerce (coerce)
+import qualified Data.Aeson.Key as AK
+import qualified Data.Aeson.KeyMap as KM
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NEList
@@ -93,7 +95,7 @@ data CompiledSchema = CompiledSchema
     minArrayLen :: !(Maybe Natural),
     maxArrayLen :: !(Maybe Natural),
     arrayTypes :: !(Maybe ArrayType),
-    props :: !(HashMap Text (TypeNode, Bool)),
+    props :: !(KM.KeyMap (TypeNode, Bool)),
     additionalProps :: !Bool,
     additionalPropSchema :: !TypeNode,
     stringVals :: {-# UNPACK #-} !(Vector Text)
@@ -155,7 +157,7 @@ compileSchema scm = do
   when (isJust minListLen && isJust maxListLen && minListLen > maxListLen)
     $ throwError
     $ MinMoreThanMax schemaName
-  propMap <- foldM go HM.empty (maybe V.empty properties objSpec)
+  propMap <- foldM go KM.empty (maybe V.empty properties objSpec)
   let arrType = getArrayTypes (elementType arraySpec) (tupleSpec arraySpec)
       tupleLen = getTupleTypeLen arrType
       hasPropSpec = isJust objSpec
@@ -187,7 +189,7 @@ compileSchema scm = do
   where
     Schema.Specification schemaName (Type.Specification types) stringValsSpec arraySpec objSpec =
       scm
-    go acc prop = HM.alterF (checkedInsert prop) (coerce $ propName prop) acc
+    go acc prop = KM.alterF (checkedInsert prop) (AK.fromText (coerce $ propName prop)) acc
     checkedInsert prop = \case
       Nothing -> pure . Just $ (identToNode (propSchema prop), propOptional prop)
       Just _ -> throwError $ DuplicatePropName schemaName (propName prop)
@@ -247,7 +249,7 @@ getTypeRefs :: CompiledSchema -> [TypeNode]
 getTypeRefs = NEList.toList . NESet.toList . typesAs
 
 getPropertyTypeRefs :: CompiledSchema -> [TypeNode]
-getPropertyTypeRefs scm = (fmap fst . HM.elems . props $ scm) ++ [additionalPropSchema scm]
+getPropertyTypeRefs scm = (fmap fst . KM.elems . props $ scm) ++ [additionalPropSchema scm]
 
 getListTypeRefs :: CompiledSchema -> [TypeNode]
 getListTypeRefs scm = case arrayTypes scm of
